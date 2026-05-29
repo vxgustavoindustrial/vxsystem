@@ -10,6 +10,10 @@ export interface SupportTicket {
   updated_at: string;
 }
 
+export interface SupportTicketWithClient extends SupportTicket {
+  client?: { name: string } | null;
+}
+
 export interface SupportMessage {
   id: string;
   client_id: string;

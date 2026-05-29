@@ -3,19 +3,33 @@ import { Outlet } from 'react-router-dom';
 
 export function AuthLayout() {
   return (
-    <div className="min-h-screen grid lg:grid-cols-2">
-      <div className="flex flex-col justify-center items-center px-4 sm:px-6 lg:px-8 bg-background">
-        <div className="w-full max-w-sm">
+    <div className="min-h-screen flex items-center justify-center bg-background relative overflow-hidden">
+      {/* Efeitos de fundo decorativos */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] bg-primary/5 rounded-full filter blur-[120px]" />
+        <div className="absolute bottom-[-15%] right-[-5%] w-[500px] h-[500px] bg-primary/8 rounded-full filter blur-[100px]" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary/3 rounded-full filter blur-[150px]" />
+      </div>
+
+      {/* Grid pattern sutil */}
+      <div 
+        className="absolute inset-0 pointer-events-none opacity-[0.03]"
+        style={{
+          backgroundImage: `radial-gradient(circle, hsl(var(--foreground)) 1px, transparent 1px)`,
+          backgroundSize: '32px 32px'
+        }}
+      />
+
+      {/* Card central */}
+      <div className="relative z-10 w-full max-w-md mx-4">
+        <div className="bg-card/80 backdrop-blur-xl border border-border/60 rounded-3xl shadow-2xl shadow-black/20 p-8 md:p-10">
           <Outlet />
         </div>
-      </div>
-      <div className="hidden lg:flex bg-card flex-col justify-center items-center p-12 relative overflow-hidden border-l border-border">
-        {/* Painel lateral com branding premium */}
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-primary/5" />
-        <div className="relative z-10 text-center text-foreground">
-          <h2 className="text-3xl font-bold tracking-tight mb-4 text-primary">Bem-vindo(a) à CAEN</h2>
-          <p className="text-lg text-muted-foreground">Gestão e Infraestrutura de Marketing Premium.</p>
-        </div>
+
+        {/* Rodapé sutil */}
+        <p className="text-center text-[11px] text-muted-foreground/50 mt-6 font-medium tracking-wide">
+          © {new Date().getFullYear()} VX Industrial — Plataforma de Onboarding
+        </p>
       </div>
     </div>
   );

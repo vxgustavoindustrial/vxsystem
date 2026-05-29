@@ -1,0 +1,7 @@
+[mcp_servers.supabase_vx]
+url = "https://mcp.supabase.com/mcp?project_ref=ymigpflksxoxyoydjpqi&features=database,debugging,development"
+bearer_token_env_var = "SUPABASE_ACCESS_TOKEN"
+enabled = true
+default_tools_approval_mode = "prompt"
+startup_timeout_sec = 30
+tool_timeout_sec = 120

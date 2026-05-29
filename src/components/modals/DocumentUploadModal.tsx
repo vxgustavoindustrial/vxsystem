@@ -79,12 +79,7 @@ export function DocumentUploadModal({ open, onOpenChange, onSuccess }: DocumentU
 
         if (uploadError) throw uploadError;
 
-        // 2. Get Public URL
-        const { data: { publicUrl } } = supabase.storage
-          .from('documents')
-          .getPublicUrl(filePath);
-        
-        finalUrl = publicUrl;
+        finalUrl = filePath;
         finalFileType = fileExt === 'pdf' ? 'pdf' : (['doc', 'docx'].includes(fileExt || '') ? 'doc' : 'other');
       }
 

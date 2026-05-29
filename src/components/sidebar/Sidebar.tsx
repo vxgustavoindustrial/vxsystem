@@ -4,13 +4,12 @@ import { useSidebarStore } from "../../store/sidebarStore";
 import { useAuth } from "../../hooks/useAuth";
 import { SidebarGroup } from "./SidebarGroup";
 import { SidebarItem } from "./SidebarItem";
-import { NotificationBadge } from "./NotificationBadge";
 import { cn } from "../../lib/utils";
 import {
-  LayoutDashboard, Users, UserCheck, CheckSquare, GitBranch,
-  FileText, BarChart2, TrendingUp, Share2, Globe, ThumbsUp,
-  MessageCircle, DollarSign, LogOut, Hexagon, ShieldCheck, Database,
-  Target, Brain
+  LayoutDashboard, Phone, MapPin, Briefcase, FileText, 
+  CreditCard, Lock, ShoppingCart, Upload, Cpu, Library, 
+  Monitor, Glasses, Headphones, LogOut, Hexagon, Users,
+  CalendarDays, ClipboardList, FolderOpen, Milestone
 } from "lucide-react";
 import { supabase } from "../../services/supabase";
 import { useAuthStore } from "../../store/authStore";
@@ -27,8 +26,6 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const { isMobile } = useSidebarStore();
   const navigate = useNavigate();
 
-  const modules = activeClient?.modules_enabled;
-
   const handleLogout = async () => {
     try {
       await supabase.auth.signOut();
@@ -44,114 +41,41 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const textClasses = isMobile ? "block" : "hidden group-hover:block transition-all duration-200";
 
 
-  const agencyItems = (
+  const adminItems = (
     <>
       <SidebarGroup label="Principal">
-        <SidebarItem icon={LayoutDashboard} label="Dashboard" href="/agency" onNavigate={onNavigate} />
+        <SidebarItem icon={LayoutDashboard} label="Dashboard" href="/admin" onNavigate={onNavigate} />
+        <SidebarItem icon={Users} label="Clientes" href="/admin/clients" onNavigate={onNavigate} />
+        <SidebarItem icon={Users} label="Equipe" href="/admin/team" onNavigate={onNavigate} />
       </SidebarGroup>
-      <SidebarGroup label="Gestão">
-        <SidebarItem 
-          icon={Users} 
-          label="Clientes" 
-          href="/agency/clients" 
-          onNavigate={onNavigate}
-          subItems={[
-            { label: "Overview", href: "/agency/clients?tab=overview" },
-            { label: "Pipeline", href: "/agency/clients?tab=pipeline" },
-          ]}
-        />
-        <SidebarItem icon={UserCheck} label="Equipe" href="/agency/team" onNavigate={onNavigate} />
-        <SidebarItem icon={ShieldCheck} label="Acessos" href="/agency/access" onNavigate={onNavigate} />
+      <SidebarGroup label="Comercial">
+        <SidebarItem icon={Phone} label="Contato" href="/admin/contact" onNavigate={onNavigate} />
+        <SidebarItem icon={MapPin} label="Visita" href="/admin/visit" onNavigate={onNavigate} />
+        <SidebarItem icon={Briefcase} label="ADM Comercial" href="/admin/commercial" onNavigate={onNavigate} />
+        <SidebarItem icon={FileText} label="Proposta" href="/admin/proposal" onNavigate={onNavigate} />
       </SidebarGroup>
-      <SidebarGroup label="Operacional">
-        <SidebarItem 
-          icon={CheckSquare} 
-          label="Tarefas" 
-          href="/agency/tasks?tab=kanban" 
-          onNavigate={onNavigate}
-          subItems={[
-            { label: "Kanban", href: "/agency/tasks?tab=kanban" },
-            { label: "Histórico", href: "/agency/tasks?tab=history" },
-            { label: "Calendário", href: "/agency/tasks?tab=calendar" },
-          ]}
-        />
-        <SidebarItem icon={GitBranch} label="Fluxos" href="/agency/flows" onNavigate={onNavigate} />
-        <SidebarItem icon={ThumbsUp} label="Aprovações" href="/agency/approvals" onNavigate={onNavigate} />
+      <SidebarGroup label="GestÃ£o & Financeiro">
+        <SidebarItem icon={FileText} label="Contratos" href="/admin/contracts" onNavigate={onNavigate} />
+        <SidebarItem icon={CreditCard} label="Pagamentos" href="/admin/payments" onNavigate={onNavigate} />
+        <SidebarItem icon={Briefcase} label="Prest. Serv." href="/admin/services" onNavigate={onNavigate} />
+        <SidebarItem icon={Lock} label="Confidencialidade" href="/admin/nda" onNavigate={onNavigate} />
+        <SidebarItem icon={ShoppingCart} label="Aquisição Plat." href="/admin/platform" onNavigate={onNavigate} />
+        <SidebarItem icon={CreditCard} label="Mensalidades" href="/admin/monthly" onNavigate={onNavigate} />
       </SidebarGroup>
-      <SidebarGroup label="Serviços">
-        <SidebarItem 
-          icon={TrendingUp} 
-          label="Tráfego Pago" 
-          href="/agency/traffic" 
-          onNavigate={onNavigate}
-          subItems={[
-            { label: "Dashboard", href: "/agency/traffic?tab=dashboard" },
-            { label: "Campanhas", href: "/agency/traffic?tab=campaigns" },
-            { label: "Otimizações", href: "/agency/traffic?tab=optimizations" },
-          ]}
-        />
-        <SidebarItem 
-          icon={Share2} 
-          label="Social Media" 
-          href="/agency/social" 
-          onNavigate={onNavigate}
-          subItems={[
-            { label: "Calendário", href: "/agency/social?tab=calendar" },
-            { label: "Produção", href: "/agency/social?tab=production" },
-            { label: "Aprovações", href: "/agency/social?tab=approvals" },
-          ]}
-        />
-        <SidebarItem 
-          icon={Globe} 
-          label="Web" 
-          href="/agency/web" 
-          onNavigate={onNavigate}
-          subItems={[
-            { label: "Projetos", href: "/agency/web?tab=projects" },
-            { label: "Entregas", href: "/agency/web?tab=deliveries" },
-          ]}
-        />
-        <SidebarItem 
-          icon={Database} 
-          label="CRM & Tech" 
-          href="/agency/crm" 
-          onNavigate={onNavigate}
-          subItems={[
-            { label: "Integrações", href: "/agency/crm?tab=integrations" },
-            { label: "Automações", href: "/agency/crm?tab=automations" },
-          ]}
-        />
+      <SidebarGroup label="OperaÃ§Ã£o do Cliente">
+        <SidebarItem icon={Monitor} label="Acesso do Cliente" href="/admin/access" onNavigate={onNavigate} />
+        <SidebarItem icon={Upload} label="Uploads Recebidos" href="/admin/uploads" onNavigate={onNavigate} />
+        <SidebarItem icon={Cpu} label="Processamento" href="/admin/processing" onNavigate={onNavigate} />
+        <SidebarItem icon={Library} label="Biblioteca" href="/admin/library" onNavigate={onNavigate} />
+        <SidebarItem icon={Glasses} label="Instalação" href="/admin/installation" onNavigate={onNavigate} />
       </SidebarGroup>
-      <SidebarGroup label="Inteligência">
-        <SidebarItem 
-          icon={Brain} 
-          label="Agente IA" 
-          href="/agency/ai-agent?tab=instances" 
-          onNavigate={onNavigate} 
-          subItems={[
-            { label: "Instâncias WhatsApp", href: "/agency/ai-agent?tab=instances" },
-            { label: "Configuração de Clientes", href: "/agency/ai-agent?tab=clients" },
-          ]}
-        />
-        <SidebarItem 
-          icon={BarChart2} 
-          label="Relatórios" 
-          href="/agency/reports" 
-          onNavigate={onNavigate}
-          subItems={[
-            { label: "Gerar", href: "/agency/reports?tab=generate" },
-            { label: "Histórico", href: "/agency/reports?tab=history" },
-          ]}
-        />
+      <SidebarGroup label="Atendimento">
+        <SidebarItem icon={Headphones} label="SAC" href="/admin/support" onNavigate={onNavigate} />
+        <SidebarItem icon={FolderOpen} label="Documentos" href="/admin/documents" onNavigate={onNavigate} />
       </SidebarGroup>
-      <SidebarGroup label="Financeiro">
-        <SidebarItem icon={DollarSign} label="Financeiro" href="/agency/financial" onNavigate={onNavigate} />
-      </SidebarGroup>
-      <SidebarGroup label="Conteúdo">
-        <SidebarItem icon={FileText} label="Documentos" href="/agency/documents" onNavigate={onNavigate} />
-      </SidebarGroup>
-      <SidebarGroup label="Suporte">
-        <SidebarItem icon={MessageCircle} label="Atendimento" href="/agency/support" onNavigate={onNavigate} />
+      <SidebarGroup label="Execucao">
+        <SidebarItem icon={ClipboardList} label="Tarefas" href="/admin/tasks" onNavigate={onNavigate} />
+        <SidebarItem icon={CalendarDays} label="Calendario" href="/admin/calendar" onNavigate={onNavigate} />
       </SidebarGroup>
     </>
   );
@@ -160,93 +84,18 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
     <>
       <SidebarGroup label="Principal">
         <SidebarItem icon={LayoutDashboard} label="Dashboard" href="/client" onNavigate={onNavigate} />
+        <SidebarItem icon={Milestone} label="Jornada VX" href="/client/onboarding" onNavigate={onNavigate} />
       </SidebarGroup>
-      <SidebarGroup label="Estratégia">
-        <SidebarItem 
-          icon={Target} 
-          label="Estratégia" 
-          href="/client/onboarding" 
-          endDecorator={<NotificationBadge type="task" />}
-          onNavigate={onNavigate}
-          subItems={[
-            { label: "Timeline", href: "/client/onboarding?view=roadmap" },
-            { label: "Kanban", href: "/client/onboarding?view=kanban" },
-            { label: "Lista", href: "/client/onboarding?view=list" },
-          ]}
-        />
+      <SidebarGroup label="Suporte">
+        <SidebarItem icon={Headphones} label="SAC" href="/client/support" onNavigate={onNavigate} />
+        <SidebarItem icon={CreditCard} label="Financeiro" href="/client/financial" onNavigate={onNavigate} />
+        <SidebarItem icon={FolderOpen} label="Documentos" href="/client/documents" onNavigate={onNavigate} />
       </SidebarGroup>
-      <SidebarGroup label="Serviços">
-        {modules?.traffic && (
-          <SidebarItem 
-            icon={TrendingUp} 
-            label="Tráfego Pago" 
-            href="/client/traffic?tab=dashboard" 
-            onNavigate={onNavigate}
-            subItems={[
-              { label: "Resultados", href: "/client/traffic?tab=dashboard" },
-              { label: "Campanhas", href: "/client/traffic?tab=campaigns" },
-            ]}
-          />
-        )}
-        {modules?.social && (
-          <SidebarItem 
-            icon={Share2} 
-            label="Social Media" 
-            href="/client/social?tab=calendar" 
-            onNavigate={onNavigate}
-            subItems={[
-              { label: "Calendário", href: "/client/social?tab=calendar" },
-              { label: "Aprovações", href: "/client/social?tab=approvals" },
-            ]}
-          />
-        )}
-        {modules?.web && (
-          <SidebarItem 
-            icon={Globe} 
-            label="Web" 
-            href="/client/web?tab=projects" 
-            onNavigate={onNavigate}
-            subItems={[
-              { label: "Projetos", href: "/client/web?tab=projects" },
-              { label: "Entregas", href: "/client/web?tab=deliveries" },
-            ]}
-          />
-        )}
-        {modules?.crm && (
-          <SidebarItem 
-            icon={Database} 
-            label="CRM & Tecnologia" 
-            href="/client/crm?tab=dashboard" 
-            onNavigate={onNavigate}
-            subItems={[
-              { label: "Status", href: "/client/crm?tab=dashboard" },
-              { label: "Integrações", href: "/client/crm?tab=integrations" },
-            ]}
-          />
-        )}
-      </SidebarGroup>
-      <SidebarGroup label="Ações">
-        {modules?.approvals && (
-          <SidebarItem 
-            icon={ThumbsUp} 
-            label="Aprovações" 
-            href="/client/approvals" 
-            endDecorator={<NotificationBadge type="approval" />}
-            onNavigate={onNavigate}
-          />
-        )}
-        {modules?.financial && (
-          <SidebarItem icon={DollarSign} label="Financeiro" href="/client/financial" onNavigate={onNavigate} />
-        )}
-      </SidebarGroup>
-      <SidebarGroup label="Recursos">
-        {modules?.documents && (
-          <SidebarItem icon={FileText} label="Documentos" href="/client/documents" onNavigate={onNavigate} />
-        )}
-        {modules?.support && (
-          <SidebarItem icon={MessageCircle} label="Suporte" href="/client/support" onNavigate={onNavigate} />
-        )}
-      </SidebarGroup>
+      {(activeClient?.modules_enabled?.approvals) && (
+        <SidebarGroup label="Servicos Contratados">
+          {activeClient.modules_enabled.approvals && <SidebarItem icon={FileText} label="Aprovacoes" href="/client/approvals" onNavigate={onNavigate} />}
+        </SidebarGroup>
+      )}
     </>
   );
 
@@ -255,12 +104,12 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
       <div className="flex h-16 items-center border-b px-4 border-border">
         <div className="flex items-center gap-2 overflow-hidden">
           <Hexagon className="h-8 w-8 shrink-0 text-primary" />
-          <span className={cn("text-xl font-bold whitespace-nowrap", textClasses)}>CAEN</span>
+          <span className={cn("text-xl font-bold whitespace-nowrap", textClasses)}>VX</span>
         </div>
       </div>
 
       <nav className="flex-1 overflow-y-auto overflow-x-hidden p-3" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-        {(role === "admin" || role === "member") ? agencyItems : clientItems}
+        {(role === "admin" || role === "member") ? adminItems : clientItems}
       </nav>
 
       <div className="border-t p-3 border-border">
@@ -273,7 +122,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
             </div>
             <div className={cn("ml-3 truncate", textClasses)}>
               <p className="truncate text-sm font-medium">{profile?.full_name}</p>
-              <p className="truncate text-xs text-muted-foreground">{(role === "admin" || role === "member") ? "Agência" : "Cliente"}</p>
+              <p className="truncate text-xs text-muted-foreground">{(role === "admin" || role === "member") ? "VX" : "Cliente"}</p>
             </div>
           </div>
           <button
@@ -311,7 +160,7 @@ export function Sidebar() {
       <Sheet open={isExpanded} onOpenChange={(open) => (open ? expand() : collapse())}>
         <SheetContent side="left" className="w-64 p-0 flex flex-col bg-card border-r border-border">
           <SheetHeader className="sr-only">
-            <SheetTitle>Menu de Navegação</SheetTitle>
+            <SheetTitle>Menu de NavegaÃ§Ã£o</SheetTitle>
           </SheetHeader>
           <SidebarContent onNavigate={() => collapse()} />
         </SheetContent>
@@ -332,3 +181,4 @@ export function Sidebar() {
     </aside>
   );
 }
+

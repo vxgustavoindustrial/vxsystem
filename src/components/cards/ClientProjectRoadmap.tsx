@@ -1,57 +1,41 @@
 import { useState, useEffect, useCallback } from 'react';
 import { 
-  ChevronRight
+  ChevronRight, Rocket, Shield, Activity, FileCheck
 } from 'lucide-react';
 import { supabase } from '@/services/supabase';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import type { Task } from '@/types/general.types';
 
 interface ClientProjectRoadmapProps {
   clientId: string;
 }
 
+interface VXProject {
+  id: string;
+  title: string;
+  status: 'analysis' | 'processing' | 'completed';
+}
+
 export function ClientProjectRoadmap({ clientId }: ClientProjectRoadmapProps) {
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [stats, setStats] = useState<Record<string, { total: number; done: number }>>({});
+  const [project, setProject] = useState<VXProject | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const loadRoadmap = useCallback(async () => {
     if (!clientId) return;
     setIsLoading(true);
     try {
-      const { data: parentTasks, error: pError } = await supabase
-        .from('tasks')
-        .select('*')
+      const { data, error } = await supabase
+        .from('vx_projects')
+        .select('id, title, status')
         .eq('client_id', clientId)
-        .is('parent_id', null)
-        .order('created_at', { ascending: true });
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
-      if (pError) throw pError;
-      setTasks(parentTasks || []);
-
-      if (parentTasks && parentTasks.length > 0) {
-        const parentIds = parentTasks.map(t => t.id);
-        const { data: subtasks, error: sError } = await supabase
-          .from('tasks')
-          .select('id, parent_id, status')
-          .in('parent_id', parentIds);
-
-        if (sError) throw sError;
-
-        const subStats: Record<string, { total: number; done: number }> = {};
-        parentIds.forEach(id => subStats[id] = { total: 0, done: 0 });
-        
-        subtasks?.forEach(sub => {
-          if (sub.parent_id) {
-            subStats[sub.parent_id].total++;
-            if (sub.status === 'done') subStats[sub.parent_id].done++;
-          }
-        });
-        setStats(subStats);
-      }
+      if (error) throw error;
+      setProject(data as VXProject | null);
     } catch (error) {
-      console.error('Erro ao carregar roadmap:', error);
+      console.error('Erro ao carregar roteiro do projeto:', error);
     } finally {
       setIsLoading(false);
     }
@@ -61,12 +45,25 @@ export function ClientProjectRoadmap({ clientId }: ClientProjectRoadmapProps) {
     loadRoadmap();
   }, [loadRoadmap]);
 
-  const totalItems = Object.values(stats).reduce((acc, s) => acc + (s.total || 1), 0);
-  const doneItems = Object.values(stats).reduce((acc, s) => acc + (s.done || 0), 0) + tasks.filter(t => t.status === 'done' && !stats[t.id]?.total).length;
-  
-  const globalProgress = totalItems > 0 
-    ? Math.round((doneItems / totalItems) * 100) 
-    : (tasks.length > 0 ? Math.round((tasks.filter(t => t.status === 'done').length / tasks.length) * 100) : 0);
+  let globalProgress = 20;
+  let stageName = "Etapa 1: Acesso à Área VX Autorizado";
+  let StageIcon = Shield;
+
+  if (project) {
+    if (project.status === 'analysis') {
+      globalProgress = 40;
+      stageName = "Etapa 2: Análise de Engenharia do Modelo 3D";
+      StageIcon = Rocket;
+    } else if (project.status === 'processing') {
+      globalProgress = 70;
+      stageName = "Etapa 3: Esteira de Conversão & Otimização";
+      StageIcon = Activity;
+    } else if (project.status === 'completed') {
+      globalProgress = 100;
+      stageName = "Etapas 4 e 5: Projeto Homologado & Pronto para o Óculos";
+      StageIcon = FileCheck;
+    }
+  }
 
   if (isLoading) {
     return (
@@ -78,13 +75,14 @@ export function ClientProjectRoadmap({ clientId }: ClientProjectRoadmapProps) {
     );
   }
 
-  if (tasks.length === 0) return null;
-
   return (
     <Card className="overflow-hidden border-border shadow-sm transition-all hover:shadow-md">
       <CardHeader className="pb-2">
         <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center justify-between">
-          <span>Progresso do Projeto</span>
+          <span className="flex items-center gap-2">
+            <StageIcon className="w-5 h-5 text-primary" />
+            Progresso Geral da Jornada VX
+          </span>
           <span className="text-primary text-xl font-bold">{globalProgress}%</span>
         </CardTitle>
       </CardHeader>
@@ -93,20 +91,27 @@ export function ClientProjectRoadmap({ clientId }: ClientProjectRoadmapProps) {
           <div className="w-full h-3 bg-muted rounded-full overflow-hidden">
             <div 
               className={cn(
-                "h-full rounded-full transition-all duration-1000 ease-out bg-gradient-to-r from-blue-500 to-indigo-600 relative",
-                globalProgress === 100 && "from-emerald-500 to-teal-600"
+                "h-full rounded-full transition-all duration-1000 ease-out bg-primary relative",
+                globalProgress === 100 && "bg-emerald-500"
               )}
               style={{ width: `${globalProgress}%` }}
             >
-              <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent animate-pulse" />
             </div>
           </div>
           
-          <div className="flex justify-between items-center text-xs text-muted-foreground font-medium">
-            <p>Acompanhe a evolução do seu projeto conosco.</p>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-xs text-muted-foreground font-medium">
+            <div>
+              <p className="text-foreground font-semibold text-sm mb-0.5">{stageName}</p>
+              {project ? (
+                <p className="text-muted-foreground">Projeto ativo: <span className="text-foreground font-medium">{project.title}</span></p>
+              ) : (
+                <p className="text-muted-foreground">Aguardando o envio do primeiro modelo 3D para iniciar o projeto.</p>
+              )}
+            </div>
             <button 
               onClick={() => window.location.href = '/client/onboarding'}
-              className="text-primary font-bold hover:underline flex items-center gap-1"
+              className="text-primary font-bold hover:underline flex items-center gap-1 shrink-0 self-end sm:self-center"
             >
               Ver Detalhes do Roteiro <ChevronRight className="w-3 h-3" />
             </button>

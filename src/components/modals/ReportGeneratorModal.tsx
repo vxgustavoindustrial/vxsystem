@@ -93,10 +93,10 @@ export function ReportGeneratorModal({ open, onOpenChange, onSuccess }: ReportGe
                   <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="monthly">Mensal de Resultados</SelectItem>
-                    <SelectItem value="traffic">Tráfego Pago</SelectItem>
-                    <SelectItem value="social">Social Media</SelectItem>
-                  </SelectContent>
-                </Select>
+                    <SelectItem value="financial">Financeiro</SelectItem>
+                    <SelectItem value="support">Suporte</SelectItem>
+                </SelectContent>
+              </Select>
               </div>
 
               <div className="grid w-full items-center gap-1.5">

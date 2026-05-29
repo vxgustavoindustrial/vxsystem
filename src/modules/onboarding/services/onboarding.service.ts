@@ -74,46 +74,15 @@ export const OnboardingService = {
     }
   },
 
-  // Marca uma etapa como concluída via Edge Function (ou via table se preferir, a docs sugere supabase function update_onboarding_step mas farei direto aqui pra garantir funcionar caso a function falte)
-  // Tentarei usar a RPC ou table flow_progress local para resolver isso para evitar erros da Edge Function não existente.
   async completeStep(clientId: string, flowId: string, stepNumber: number) {
     try {
-      // 1. Pega o progresso atual
-      const { data: progressData, error: progressError } = await supabase
-        .from('flow_progress')
-        .select('*')
-        .eq('client_id', clientId)
-        .eq('flow_id', flowId)
-        .single();
+      const { data: updatedProgress, error } = await supabase.rpc('complete_my_flow_step', {
+        p_client_id: clientId,
+        p_flow_id: flowId,
+        p_step_number: stepNumber,
+      });
 
-      if (progressError) throw progressError;
-
-      const progress = progressData as FlowProgress;
-      
-      // 2. Adiciona a etapa às completadas e avança
-      const newCompletedSteps = [...new Set([...progress.completed_steps, stepNumber])];
-      const nextStep = progress.current_step === stepNumber ? stepNumber + 1 : progress.current_step;
-
-      // 3. Atualiza na base de dados
-      const { data: updatedProgress, error: updateError } = await supabase
-        .from('flow_progress')
-        .update({
-          completed_steps: newCompletedSteps,
-          current_step: nextStep,
-        })
-        .eq('id', progress.id)
-        .select()
-        .single();
-
-      if (updateError) throw updateError;
-      
-      // 4. Se a etapa for a última, tenta marcar cliente como onboarding_completed
-      // O total de passos deveria ser validado antes, chamador ou trigger vão lidar. 
-      // Por enquanto as chamadas simples resolvem
-      
-      // Tentativa de invocar Edge Function para atualizar step (conforme docs), mas se falhar cai no catch
-      // supabase.functions.invoke('update_onboarding_step', { body: { client_id: clientId, step: stepNumber, completed: true } })
-      
+      if (error) throw error;
       return updatedProgress as FlowProgress;
     } catch (error) {
       console.error('Erro ao concluir etapa de onboarding:', error);
@@ -123,10 +92,9 @@ export const OnboardingService = {
   
   async completeOnboardingClient(clientId: string) {
     try {
-      const { error } = await supabase
-        .from('clients')
-        .update({ onboarding_completed: true, status: 'active' })
-        .eq('id', clientId);
+      const { error } = await supabase.rpc('complete_my_onboarding', {
+        p_client_id: clientId,
+      });
       if (error) throw error;
     } catch (error) {
       console.error('Erro ao finalizar fluxo:', error);

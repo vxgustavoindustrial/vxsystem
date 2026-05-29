@@ -31,7 +31,7 @@ export function ClientLayout() {
     const id = impersonatedClientId;
     setImpersonatedClientId(null);
     setActiveClient(profile?.client || null);
-    navigate(`/agency/clients/${id}`);
+    navigate(`/admin/clients/${id}`);
   };
   
   return (

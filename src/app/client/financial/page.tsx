@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+﻿import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/services/supabase";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { LoadingSkeleton } from "@/components/ui/LoadingSkeleton";
@@ -12,7 +12,6 @@ import {
   AlertCircle, 
   MessageSquare, 
   StickyNote,
-  RotateCcw,
 } from "lucide-react";
 import { format } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
@@ -27,6 +26,7 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { openDocumentFile } from "@/services/privateFiles";
 
 export function ClientFinancialPage() {
   const { clientId } = useAuth();
@@ -66,17 +66,33 @@ export function ClientFinancialPage() {
     return () => { mounted = false; };
   }, [fetchInvoices]);
 
-  const handleUpdateInvoice = async (invoiceId: string, updates: Partial<FinancialInvoice>) => {
+  const reportPayment = async (invoiceId: string) => {
     setSubmitting(true);
-    const { error } = await supabase
-      .from('financial_invoices')
-      .update(updates)
-      .eq('id', invoiceId);
+    const { error } = await supabase.rpc('report_my_invoice_payment', {
+      p_invoice_id: invoiceId,
+    });
 
     if (error) {
-      toast.error("Erro ao atualizar fatura.");
+      toast.error("Erro ao informar pagamento.");
     } else {
-      toast.success("Fatura atualizada com sucesso!");
+      toast.success("Pagamento informado. A equipe VX farÃ¡ a confirmaÃ§Ã£o.");
+      fetchInvoices();
+    }
+    setSubmitting(false);
+  };
+
+  const submitFeedback = async (invoiceId: string, feedback: { notes?: string; dispute?: string }) => {
+    setSubmitting(true);
+    const { error } = await supabase.rpc('submit_my_invoice_feedback', {
+      p_invoice_id: invoiceId,
+      p_client_notes: feedback.notes ?? null,
+      p_dispute_message: feedback.dispute ?? null,
+    });
+
+    if (error) {
+      toast.error("Erro ao enviar mensagem sobre a fatura.");
+    } else {
+      toast.success("Mensagem enviada com sucesso!");
       fetchInvoices();
       setIsDisputeOpen(false);
       setIsNotesOpen(false);
@@ -101,7 +117,7 @@ export function ClientFinancialPage() {
     <div className="space-y-6">
       <PageHeader 
         title="Financeiro" 
-        description="Acompanhe suas faturas, boletos e histórico de pagamentos." 
+        description="Acompanhe suas faturas, boletos e histÃ³rico de pagamentos." 
       />
 
       {loading ? (
@@ -121,13 +137,13 @@ export function ClientFinancialPage() {
                       <h3 className="font-bold text-lg text-foreground">{invoice.title || "Fatura CAEN"}</h3>
                       {invoice.client_notes && <StickyNote className="h-4 w-4 text-primary opacity-50" />}
                     </div>
-                    <p className="text-sm text-muted-foreground">{invoice.description || "Pagamento referente a serviços de agência."}</p>
+                    <p className="text-sm text-muted-foreground">{invoice.description || "Pagamento referente a serviÃ§os de agÃªncia."}</p>
                     <div className="flex flex-wrap justify-center md:justify-start gap-3 mt-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
                        <span className="bg-muted px-2 py-1 rounded border border-border/50">
                          Vence em: {format(new Date(invoice.due_date), "dd/MM/yyyy")}
                        </span>
                        <span className="bg-muted px-2 py-1 rounded border border-border/50">
-                         Categoria: {invoice.category === 'ads' ? 'Tráfego Pago' : 'Mão de Obra'}
+                         Categoria: {invoice.category === 'ads' ? 'TrÃ¡fego Pago' : 'MÃ£o de Obra'}
                        </span>
                     </div>
                   </div>
@@ -140,41 +156,30 @@ export function ClientFinancialPage() {
                   </div>
 
                   <div className="flex flex-wrap md:flex-nowrap gap-2 justify-center">
-                    {invoice.status !== 'paid' && (
+                    {invoice.status !== 'paid' && invoice.status !== 'payment_reported' && (
                       <Button 
                         variant="default" 
                         className="shadow-md bg-emerald-600 hover:bg-emerald-700 text-white" 
-                        onClick={() => handleUpdateInvoice(invoice.id, { status: 'paid', paid_at: new Date().toISOString() })}
+                        onClick={() => reportPayment(invoice.id)}
                         disabled={submitting}
                       >
-                        <CheckCircle2 className="mr-2 h-4 w-4" /> Já fiz o pagamento
-                      </Button>
-                    )}
-
-                    {invoice.status === 'paid' && (
-                      <Button 
-                        variant="outline" 
-                        className="border-amber-500/20 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10"
-                        onClick={() => {
-                          if (window.confirm("Deseja marcar esta fatura como pendente novamente?")) {
-                            handleUpdateInvoice(invoice.id, { status: 'pending', paid_at: null });
-                          }
-                        }}
-                        disabled={submitting}
-                      >
-                        <RotateCcw className="mr-2 h-4 w-4" /> Reverter Pagamento
+                        <CheckCircle2 className="mr-2 h-4 w-4" /> Informar Pagamento
                       </Button>
                     )}
 
                     {invoice.file_url && (
-                      <Button 
-                        variant="outline" 
+                      <Button
+                        variant="outline"
                         size="sm"
-                        asChild
+                        onClick={async () => {
+                          try {
+                            await openDocumentFile(invoice.file_url!);
+                          } catch {
+                            toast.error("Nao foi possivel abrir o arquivo.");
+                          }
+                        }}
                       >
-                        <a href={invoice.file_url} target="_blank" rel="noreferrer">
                           <FileText className="mr-2 h-4 w-4" /> Visualizar
-                        </a>
                       </Button>
                     )}
 
@@ -212,7 +217,7 @@ export function ClientFinancialPage() {
           <FileText className="h-12 w-12 text-muted-foreground mb-4 opacity-30" />
           <h3 className="text-xl font-bold">Nenhuma fatura encontrada</h3>
           <p className="text-muted-foreground max-w-sm mt-2">
-            Você ainda não possui faturas ou boletos pendentes. Quando a agência enviar, eles aparecerão aqui.
+            VocÃª ainda nÃ£o possui faturas ou boletos pendentes. Quando a agÃªncia enviar, eles aparecerÃ£o aqui.
           </p>
         </div>
       )}
@@ -223,7 +228,7 @@ export function ClientFinancialPage() {
           <DialogHeader>
             <DialogTitle>Questionar Fatura</DialogTitle>
             <DialogDescription>
-              Descreva o motivo do seu questionamento ou dúvida sobre esta fatura. Nossa equipe entrará em contato.
+              Descreva o motivo do seu questionamento ou dÃºvida sobre esta fatura. Nossa equipe entrarÃ¡ em contato.
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
@@ -239,11 +244,7 @@ export function ClientFinancialPage() {
             <Button 
               className="bg-orange-600 hover:bg-orange-700"
               disabled={submitting || !tempText.trim()}
-              onClick={() => handleUpdateInvoice(selectedInvoice!.id, { 
-                dispute_message: tempText, 
-                status: 'disputed',
-                dispute_at: new Date().toISOString()
-              })}
+              onClick={() => submitFeedback(selectedInvoice!.id, { dispute: tempText })}
             >
               Enviar Questionamento
             </Button>
@@ -257,12 +258,12 @@ export function ClientFinancialPage() {
           <DialogHeader>
             <DialogTitle>Notas do Cliente</DialogTitle>
             <DialogDescription>
-              Adicione observações internas ou informações extras sobre esta fatura.
+              Adicione observaÃ§Ãµes internas ou informaÃ§Ãµes extras sobre esta fatura.
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
             <Textarea 
-              placeholder="Ex: Já agendei para o dia 05..."
+              placeholder="Ex: JÃ¡ agendei para o dia 05..."
               value={tempText}
               onChange={(e) => setTempText(e.target.value)}
               rows={4}
@@ -272,7 +273,7 @@ export function ClientFinancialPage() {
             <Button variant="outline" onClick={() => setIsNotesOpen(false)}>Cancelar</Button>
             <Button 
               disabled={submitting}
-              onClick={() => handleUpdateInvoice(selectedInvoice!.id, { client_notes: tempText })}
+              onClick={() => submitFeedback(selectedInvoice!.id, { notes: tempText })}
             >
               Salvar Notas
             </Button>
@@ -282,3 +283,4 @@ export function ClientFinancialPage() {
     </div>
   );
 }
+

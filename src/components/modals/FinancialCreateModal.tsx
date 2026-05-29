@@ -90,11 +90,7 @@ export function FinancialCreateModal({ open, onOpenChange, onSuccess }: Financia
 
         if (uploadError) throw uploadError;
 
-        const { data: { publicUrl } } = supabase.storage
-          .from('documents')
-          .getPublicUrl(filePath);
-          
-        finalFileUrl = publicUrl;
+        finalFileUrl = filePath;
       }
 
       // 2. Save to financial_invoices

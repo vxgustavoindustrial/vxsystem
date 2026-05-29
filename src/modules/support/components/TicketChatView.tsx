@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { SupportService } from '../services/support.service';
-import type { SupportMessage } from '../types';
+import type { SupportMessage, SupportTicketWithClient } from '../types';
 import { useAuthStore } from '@/store/authStore';
 import { toast } from 'sonner';
 import { Textarea } from '@/components/ui/textarea';
@@ -21,7 +21,7 @@ export function TicketChatView({ ticketId, onBack }: TicketChatViewProps) {
   const { clientId: storeClientId, profile } = useAuthStore();
   const navigate = useNavigate();
   
-  const [ticket, setTicket] = useState<any | null>(null);
+  const [ticket, setTicket] = useState<SupportTicketWithClient | null>(null);
   const [messages, setMessages] = useState<SupportMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -63,7 +63,7 @@ export function TicketChatView({ ticketId, onBack }: TicketChatViewProps) {
       setTicket(tData);
       setMessages(mData as unknown as SupportMessage[]);
       await SupportService.markMessagesAsRead(ticketId);
-    } catch (_err) {
+    } catch {
       toast.error('Erro ao carregar detalhes do chamado.');
     } finally {
       if (showLoader) setIsLoading(false);
@@ -89,7 +89,7 @@ export function TicketChatView({ ticketId, onBack }: TicketChatViewProps) {
       
       await SupportService.sendMessage(targetClientId, ticketId, content);
       scrollToBottom();
-    } catch (_err) {
+    } catch {
        toast.error('Falha ao enviar mensagem.');
     } finally {
       setIsSending(false);
@@ -118,9 +118,9 @@ export function TicketChatView({ ticketId, onBack }: TicketChatViewProps) {
     if (!ticketId) return;
     try {
       await SupportService.updateTicketStatus(ticketId, 'resolved');
-      setTicket((prev: any) => prev ? { ...prev, status: 'resolved' } : null);
+      setTicket((prev) => prev ? { ...prev, status: 'resolved' } : null);
       toast.success('Chamado marcado como resolvido.');
-    } catch (error) {
+    } catch {
       toast.error('Erro ao atualizar status do chamado.');
     }
   };

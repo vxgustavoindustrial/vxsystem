@@ -1,24 +1,12 @@
-import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/store/authStore';
 import { useNotificationStore } from '@/store/notificationStore';
 
 export function ApprovalBadgeCount() {
   const { profile } = useAuthStore();
   const { notifications } = useNotificationStore();
-  const [count, setCount] = useState(0);
-
-  useEffect(() => {
-    if (!profile?.client_id) return;
-
-    // Filtra notificações não lidas do tipo 'approval'
-    const unreadApprovals = notifications.filter(
-      n => n.type === 'approval' && !n.read_at
-    ).length;
-
-    if (count !== unreadApprovals) {
-      setCount(unreadApprovals);
-    }
-  }, [notifications, profile?.client_id, count]);
+  const count = profile?.client_id
+    ? notifications.filter((notification) => notification.type === 'approval' && !notification.read_at).length
+    : 0;
 
   if (count === 0) return null;
 

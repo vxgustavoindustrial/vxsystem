@@ -10,7 +10,7 @@ const getStatusColor = (status: string) => {
   const normalizedStatus = status.toLowerCase();
   
   if (['active', 'approved', 'done', 'paid'].includes(normalizedStatus)) return 'green';
-  if (['pending', 'in_progress', 'scheduled'].includes(normalizedStatus)) return 'yellow';
+  if (['pending', 'payment_reported', 'in_progress', 'scheduled'].includes(normalizedStatus)) return 'yellow';
   if (['inactive', 'rejected', 'overdue'].includes(normalizedStatus)) return 'red';
   if (['onboarding', 'review'].includes(normalizedStatus)) return 'blue';
   
@@ -22,6 +22,7 @@ const getStatusLabel = (status: string) => {
   const translations: Record<string, string> = {
     'paid': 'Pago',
     'pending': 'Pendente',
+    'payment_reported': 'Pagamento Informado',
     'overdue': 'Atrasado',
     'disputed': 'Contestado',
     'active': 'Ativo',

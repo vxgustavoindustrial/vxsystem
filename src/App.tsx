@@ -1,11 +1,11 @@
-import { useEffect } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { supabase } from './services/supabase';
 import { useAuthStore } from './store/authStore';
 import { useAuth } from './hooks/useAuth';
 
 import { AuthLayout } from './layouts/AuthLayout';
-import { AgencyLayout } from './layouts/AgencyLayout';
+import { AdminLayout } from './layouts/AdminLayout';
 import { ClientLayout } from './layouts/ClientLayout';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { ThemeProvider } from './components/ThemeProvider';
@@ -16,43 +16,47 @@ import { Toaster } from './components/ui/sonner';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { AuthLoadingScreen } from './components/ui/AuthLoadingScreen';
 
+const AdminDashboard = lazy(() => import('./app/admin/page').then((mod) => ({ default: mod.AdminDashboard })));
+const AdminClientsPage = lazy(() => import('./app/admin/clients/page').then((mod) => ({ default: mod.AdminClientsPage })));
+const AdminClientDetailPage = lazy(() => import('./app/admin/clients/[id]/page').then((mod) => ({ default: mod.AdminClientDetailPage })));
+const AdminDocumentsPage = lazy(() => import('./app/admin/documents/page').then((mod) => ({ default: mod.AdminDocumentsPage })));
+const AdminFinancialPage = lazy(() => import('./app/admin/financial/page').then((mod) => ({ default: mod.AdminFinancialPage })));
+const AdminTasksPage = lazy(() => import('./app/admin/tasks/page').then((mod) => ({ default: mod.AdminTasksPage })));
+const AdminTeamPage = lazy(() => import('./app/admin/team/page').then((mod) => ({ default: mod.AdminTeamPage })));
+const AdminCalendarPage = lazy(() => import('./app/admin/calendar/page').then((mod) => ({ default: mod.AdminCalendarPage })));
+const AdminSupportPage = lazy(() => import('./app/admin/support/page'));
+const AdminTicketDetailPage = lazy(() => import('./app/admin/support/[ticketId]/page'));
+const AdminContactPage = lazy(() => import('./modules/vx-admin/components/AdminCommercialPages').then((mod) => ({ default: mod.AdminContactPage })));
+const AdminVisitPage = lazy(() => import('./modules/vx-admin/components/AdminCommercialPages').then((mod) => ({ default: mod.AdminVisitPage })));
+const AdminCommercialPage = lazy(() => import('./modules/vx-admin/components/AdminCommercialPages').then((mod) => ({ default: mod.AdminCommercialPage })));
+const AdminProposalPage = lazy(() => import('./modules/vx-admin/components/AdminCommercialPages').then((mod) => ({ default: mod.AdminProposalPage })));
+const AdminContractsPage = lazy(() => import('./modules/vx-admin/components/AdminCommercialPages').then((mod) => ({ default: mod.AdminContractsPage })));
+const AdminServicesPage = lazy(() => import('./modules/vx-admin/components/AdminCommercialPages').then((mod) => ({ default: mod.AdminServicesPage })));
+const AdminNdaPage = lazy(() => import('./modules/vx-admin/components/AdminCommercialPages').then((mod) => ({ default: mod.AdminNdaPage })));
+const AdminPlatformPage = lazy(() => import('./modules/vx-admin/components/AdminCommercialPages').then((mod) => ({ default: mod.AdminPlatformPage })));
+const AdminMonthlyPage = lazy(() => import('./modules/vx-admin/components/AdminCommercialPages').then((mod) => ({ default: mod.AdminMonthlyPage })));
+const AdminClientAccessPage = lazy(() => import('./modules/vx-admin/components/AdminOperationsPages').then((mod) => ({ default: mod.AdminClientAccessPage })));
+const AdminUploadsPage = lazy(() => import('./modules/vx-admin/components/AdminOperationsPages').then((mod) => ({ default: mod.AdminUploadsPage })));
+const AdminProcessingPage = lazy(() => import('./modules/vx-admin/components/AdminOperationsPages').then((mod) => ({ default: mod.AdminProcessingPage })));
+const AdminLibraryPage = lazy(() => import('./modules/vx-admin/components/AdminOperationsPages').then((mod) => ({ default: mod.AdminLibraryPage })));
+const AdminInstallationPage = lazy(() => import('./modules/vx-admin/components/AdminOperationsPages').then((mod) => ({ default: mod.AdminInstallationPage })));
+
+const ClientDashboard = lazy(() => import('./app/client/page').then((mod) => ({ default: mod.ClientDashboard })));
+const ClientOnboardingPage = lazy(() => import('./app/client/onboarding/page').then((mod) => ({ default: mod.ClientOnboardingPage })));
+const ClientApprovalsPage = lazy(() => import('./app/client/approvals/page').then((mod) => ({ default: mod.ClientApprovalsPage })));
+const ClientSupportPage = lazy(() => import('./app/client/support/page').then((mod) => ({ default: mod.ClientSupportPage })));
+const ClientTicketDetailPage = lazy(() => import('./app/client/support/[ticketId]/page').then((mod) => ({ default: mod.ClientTicketDetailPage })));
+const ClientFinancialPage = lazy(() => import('./app/client/financial/page').then((mod) => ({ default: mod.ClientFinancialPage })));
+const ClientDocumentsPage = lazy(() => import('./app/client/documents/page').then((mod) => ({ default: mod.ClientDocumentsPage })));
+const ClientAccessPage = lazy(() => import('./modules/vx-client/components/ClientVxPages').then((mod) => ({ default: mod.ClientAccessPage })));
+const ClientUploadPage = lazy(() => import('./modules/vx-client/components/ClientVxPages').then((mod) => ({ default: mod.ClientUploadPage })));
+const ClientProcessingPage = lazy(() => import('./modules/vx-client/components/ClientVxPages').then((mod) => ({ default: mod.ClientProcessingPage })));
+const ClientLibraryPage = lazy(() => import('./modules/vx-client/components/ClientVxPages').then((mod) => ({ default: mod.ClientLibraryPage })));
+const ClientInstallationPage = lazy(() => import('./modules/vx-client/components/ClientVxPages').then((mod) => ({ default: mod.ClientInstallationPage })));
+
 // Agência
-import { AgencyDashboard } from './app/agency/page';
-import { AgencyClientsPage } from './app/agency/clients/page';
-import { AgencyClientDetailPage } from './app/agency/clients/[id]/page';
-// AgencyCalendarPage removido - calendário agora é sub-item de Tarefas
-import { AgencyTasksPage } from './app/agency/tasks/page';
-import { AgencyFlowsPage } from './app/agency/flows/page';
-import { AgencyTeamPage } from './app/agency/team/page';
-import { AgencyApprovalsPage } from './app/agency/approvals/page';
-import { AgencyDocumentsPage } from './app/agency/documents/page';
-import { AgencyReportsPage } from './app/agency/reports/page';
-import { AgencyFinancialPage } from './app/agency/financial/page';
-import { AgencyAccessPage } from './app/agency/access/page';
-import AgencySocialPage from './app/agency/social/page';
-import AgencyTrafficPage from './app/agency/traffic/page';
-import AgencyWebPage from './app/agency/web/page';
-import AgencyCRMPage from './app/agency/crm/page';
-// AgencyGeneralPage removido - módulo Geral eliminado
-import AIAgentPage from './app/agency/ai-agent/page';
-import AgencySupportPage from './app/agency/support/page';
-import AgencyTicketDetailPage from './app/agency/support/[ticketId]/page';
 
 // Cliente
-import { ClientDashboard } from './app/client/page';
-import { ClientOnboardingPage } from './app/client/onboarding/page';
-import { ClientTrafficPage } from './app/client/traffic/page';
-import { ClientCampaignsPage } from './app/client/traffic/campaigns/page';
-import { ClientCampaignDetailPage } from './app/client/traffic/campaigns/[id]/page';
-import { ClientAdsPage } from './app/client/traffic/ads/page';
-import { ClientSocialPage } from './app/client/social/page';
-import { ClientWebPage } from './app/client/web/page';
-import { ClientCRMPage } from './app/client/crm/page';
-import { ClientApprovalsPage } from './app/client/approvals/page';
-import { ClientSupportPage } from './app/client/support/page';
-import { ClientTicketDetailPage } from './app/client/support/[ticketId]/page';
-import { ClientFinancialPage } from './app/client/financial/page';
-import { ClientDocumentsPage } from './app/client/documents/page';
 // ClientGeneralPage e ClientCalendarPage removidos - módulos eliminados
 
 function RootRedirect() {
@@ -60,7 +64,7 @@ function RootRedirect() {
   
   if (isLoading) return <AuthLoadingScreen />; 
   
-  if (role === 'admin' || role === 'member') return <Navigate to="/agency" replace />;
+  if (role === 'admin' || role === 'member') return <Navigate to="/admin" replace />;
   if (role === 'client') return <Navigate to="/client" replace />;
   return <Navigate to="/login" replace />;
 }
@@ -204,6 +208,7 @@ export default function App() {
       <BrowserRouter>
         <Toaster position="top-right" richColors />
       <ErrorBoundary>
+        <Suspense fallback={<AuthLoadingScreen />}>
         <Routes>
           <Route path="/" element={<RootRedirect />} />
           
@@ -212,42 +217,44 @@ export default function App() {
           </Route>
           
           <Route element={<ProtectedRoute requiredRole="admin" />}>
-            <Route element={<AgencyLayout />}>
-              <Route path="/agency" element={<AgencyDashboard />} />
-              <Route path="/agency/clients" element={<AgencyClientsPage />} />
-              <Route path="/agency/clients/:id" element={<AgencyClientDetailPage />} />
-              {/* Calendário agora é sub-item de Tarefas (?tab=calendar) */}
-              <Route path="/agency/approvals" element={<AgencyApprovalsPage />} />
-              <Route path="/agency/tasks" element={<AgencyTasksPage />} />
-              <Route path="/agency/flows" element={<AgencyFlowsPage />} />
-              <Route path="/agency/team" element={<AgencyTeamPage />} />
-               <Route path="/agency/documents" element={<AgencyDocumentsPage />} />
-              <Route path="/agency/reports" element={<AgencyReportsPage />} />
-              <Route path="/agency/financial" element={<AgencyFinancialPage />} />
-              <Route path="/agency/access" element={<AgencyAccessPage />} />
-              <Route path="/agency/social" element={<AgencySocialPage />} />
-              <Route path="/agency/traffic" element={<AgencyTrafficPage />} />
-              <Route path="/agency/web" element={<AgencyWebPage />} />
-              <Route path="/agency/crm" element={<AgencyCRMPage />} />
-              <Route path="/agency/ai-agent" element={<AIAgentPage />} />
-              <Route path="/agency/support" element={<AgencySupportPage />} />
-              <Route path="/agency/support/:ticketId" element={<AgencyTicketDetailPage />} />
-              {/* Módulo Geral eliminado */}
+            <Route element={<AdminLayout />}>
+              <Route path="/admin" element={<AdminDashboard />} />
+              <Route path="/admin/contact" element={<AdminContactPage />} />
+              <Route path="/admin/visit" element={<AdminVisitPage />} />
+              <Route path="/admin/commercial" element={<AdminCommercialPage />} />
+              <Route path="/admin/proposal" element={<AdminProposalPage />} />
+              <Route path="/admin/contracts" element={<AdminContractsPage />} />
+              <Route path="/admin/payments" element={<AdminFinancialPage />} />
+              <Route path="/admin/services" element={<AdminServicesPage />} />
+              <Route path="/admin/nda" element={<AdminNdaPage />} />
+              <Route path="/admin/platform" element={<AdminPlatformPage />} />
+              <Route path="/admin/monthly" element={<AdminMonthlyPage />} />
+              <Route path="/admin/access" element={<AdminClientAccessPage />} />
+              <Route path="/admin/uploads" element={<AdminUploadsPage />} />
+              <Route path="/admin/processing" element={<AdminProcessingPage />} />
+              <Route path="/admin/library" element={<AdminLibraryPage />} />
+              <Route path="/admin/installation" element={<AdminInstallationPage />} />
+              <Route path="/admin/support" element={<AdminSupportPage />} />
+              <Route path="/admin/support/:ticketId" element={<AdminTicketDetailPage />} />
+              <Route path="/admin/clients" element={<AdminClientsPage />} />
+              <Route path="/admin/clients/:id" element={<AdminClientDetailPage />} />
+              <Route path="/admin/documents" element={<AdminDocumentsPage />} />
+              <Route path="/admin/tasks" element={<AdminTasksPage />} />
+              <Route path="/admin/team" element={<AdminTeamPage />} />
+              <Route path="/admin/calendar" element={<AdminCalendarPage />} />
             </Route>
           </Route>
           
           <Route element={<ProtectedRoute requiredRole="client" />}>
             <Route element={<ClientLayout />}>
               <Route path="/client" element={<ClientDashboard />} />
+              <Route path="/client/access" element={<ClientAccessPage />} />
+              <Route path="/client/upload" element={<ClientUploadPage />} />
+              <Route path="/client/processing" element={<ClientProcessingPage />} />
+              <Route path="/client/library" element={<ClientLibraryPage />} />
+              <Route path="/client/installation" element={<ClientInstallationPage />} />
               <Route path="/client/onboarding" element={<ClientOnboardingPage />} />
               {/* Calendário do cliente eliminado - vive dentro de Social Media */}
-              <Route path="/client/traffic" element={<ClientTrafficPage />} />
-              <Route path="/client/traffic/campaigns" element={<ClientCampaignsPage />} />
-              <Route path="/client/traffic/campaigns/:id" element={<ClientCampaignDetailPage />} />
-              <Route path="/client/traffic/ads" element={<ClientAdsPage />} />
-              <Route path="/client/social" element={<ClientSocialPage />} />
-              <Route path="/client/web" element={<ClientWebPage />} />
-              <Route path="/client/crm" element={<ClientCRMPage />} />
               <Route path="/client/approvals" element={<ClientApprovalsPage />} />
               <Route path="/client/support" element={<ClientSupportPage />} />
               <Route path="/client/support/:ticketId" element={<ClientTicketDetailPage />} />
@@ -261,6 +268,7 @@ export default function App() {
           
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        </Suspense>
       </ErrorBoundary>
       </BrowserRouter>
     </ThemeProvider>

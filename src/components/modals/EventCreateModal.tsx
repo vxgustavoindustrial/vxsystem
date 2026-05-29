@@ -25,7 +25,7 @@ const createEventSchema = z.object({
   platform: z.string().optional(),
   client_id: z.string().min(1, "Selecione o cliente"),
   color: z.string().optional(),
-  module: z.enum(['traffic', 'social', 'web', 'crm', 'general']).optional(),
+  module: z.enum(['general', 'onboarding', 'approvals', 'financial', 'documents', 'support']).optional(),
   description: z.string().optional(),
 });
 
@@ -99,7 +99,7 @@ export function EventCreateModal({
             platform: initialEvent.platform || '',
             color: initialEvent.color || '#3b82f6',
             client_id: initialEvent.client_id,
-            module: (initialEvent.module as 'traffic' | 'social' | 'web' | 'crm' | 'general') || 'general',
+            module: (initialEvent.module as 'general' | 'onboarding' | 'approvals' | 'financial' | 'documents' | 'support') || 'general',
             description: initialEvent.description || '',
           });
       } else {
@@ -155,7 +155,7 @@ export function EventCreateModal({
           client_id: data.client_id,
           event_date: data.event_date,
           event_type: data.event_type,
-          platform: data.platform === 'crm' ? 'insta' : data.platform, // 'crm' is not a valid platform for social_calendar_events
+          platform: data.platform,
           color: data.color,
         };
 
@@ -258,15 +258,16 @@ export function EventCreateModal({
               <Label>Módulo da Tarefa</Label>
               <Select 
                 value={watch("module") || "general"} 
-                onValueChange={(val: "traffic" | "social" | "web" | "general" | "crm") => setValue("module", val)}
+                onValueChange={(val: "general" | "onboarding" | "approvals" | "financial" | "documents" | "support") => setValue("module", val)}
               >
                 <SelectTrigger><SelectValue placeholder="Selecione o módulo..." /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="general">Geral</SelectItem>
-                  <SelectItem value="traffic">Tráfego</SelectItem>
-                  <SelectItem value="social">Social Media</SelectItem>
-                  <SelectItem value="web">Desenvolvimento Web</SelectItem>
-                  <SelectItem value="crm">CRM e Tecnologia</SelectItem>
+                  <SelectItem value="onboarding">Onboarding / Implantação</SelectItem>
+                  <SelectItem value="approvals">Aprovações</SelectItem>
+                  <SelectItem value="financial">Financeiro</SelectItem>
+                  <SelectItem value="documents">Documentos</SelectItem>
+                  <SelectItem value="support">Suporte</SelectItem>
                 </SelectContent>
               </Select>
             </div>

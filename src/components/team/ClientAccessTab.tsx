@@ -33,6 +33,7 @@ interface Profile {
   full_name: string | null;
   email: string | null;
   role: string;
+  is_active: boolean;
   permissions?: Permissions;
 }
 
@@ -47,10 +48,10 @@ export function ClientAccessTab({ clientId }: ClientAccessTabProps) {
   const [password, setPassword] = useState("");
   const [permissions, setPermissions] = useState<Permissions>({
     approvals: 'view',
-    social: 'view',
-    traffic: 'view',
-    web: 'view',
-    financial: 'view'
+    financial: 'view',
+    documents: 'view',
+    support: 'view',
+    onboarding: 'view'
   });
   const [submitting, setSubmitting] = useState(false);
 
@@ -80,11 +81,9 @@ export function ClientAccessTab({ clientId }: ClientAccessTabProps) {
   }, [fetchProfiles]);
 
   const generateDefaultPassword = () => {
-    const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%";
-    let pass = "Caen@";
-    for (let i = 0; i < 4; i++) {
-      pass += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%";
+    const bytes = crypto.getRandomValues(new Uint8Array(16));
+    const pass = Array.from(bytes, (byte) => chars[byte % chars.length]).join("");
     setPassword(pass);
   };
 
@@ -94,12 +93,14 @@ export function ClientAccessTab({ clientId }: ClientAccessTabProps) {
     
     try {
       // Chamada RPC para criar o usuário no Auth e o perfil no Banco simultaneamente
-      const { error } = await supabase.rpc("create_client_user", {
-        target_email: email.toLowerCase(),
-        target_password: password,
-        target_full_name: fullName,
-        target_client_id: clientId,
-        target_permissions: permissions
+      const { error } = await supabase.functions.invoke("create-client-access", {
+        body: {
+          email: email.toLowerCase(),
+          password,
+          fullName,
+          clientId,
+          permissions
+        }
       });
 
       if (error) throw error;
@@ -109,9 +110,9 @@ export function ClientAccessTab({ clientId }: ClientAccessTabProps) {
       resetForm();
       fetchProfiles();
       
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      toast.error(err.message || "Erro ao criar acesso automático.");
+      toast.error(err instanceof Error ? err.message : "Erro ao criar acesso automatico.");
     } finally {
       setSubmitting(false);
     }
@@ -123,10 +124,10 @@ export function ClientAccessTab({ clientId }: ClientAccessTabProps) {
     setPassword("");
     setPermissions({
       approvals: 'view',
-      social: 'view',
-      traffic: 'view',
-      web: 'view',
-      financial: 'view'
+      financial: 'view',
+      documents: 'view',
+      support: 'view',
+      onboarding: 'view'
     });
   };
 
@@ -135,10 +136,10 @@ export function ClientAccessTab({ clientId }: ClientAccessTabProps) {
     setEditFullName(profile.full_name || "");
     setEditPermissions(profile.permissions || {
       approvals: 'view',
-      social: 'view',
-      traffic: 'view',
-      web: 'view',
-      financial: 'view'
+      financial: 'view',
+      documents: 'view',
+      support: 'view',
+      onboarding: 'view'
     });
     setIsEditModalOpen(true);
   };
@@ -162,9 +163,9 @@ export function ClientAccessTab({ clientId }: ClientAccessTabProps) {
       toast.success("Acesso atualizado com sucesso!");
       setIsEditModalOpen(false);
       fetchProfiles();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      toast.error(err.message || "Erro ao atualizar acesso.");
+      toast.error(err instanceof Error ? err.message : "Erro ao atualizar acesso.");
     } finally {
       setSubmitting(false);
     }
@@ -184,18 +185,19 @@ export function ClientAccessTab({ clientId }: ClientAccessTabProps) {
     toast.success("Copiado para a área de transferência!");
   };
 
-  const handleDeleteProfile = async (id: string) => {
-    if (!confirm("Tem certeza que deseja remover este acesso?")) return;
+  const handleToggleAccess = async (profile: Profile) => {
+    const action = profile.is_active ? "desativar" : "reativar";
+    if (!confirm(`Tem certeza que deseja ${action} este acesso?`)) return;
     
     const { error } = await supabase
       .from("profiles")
-      .delete()
-      .eq("id", id);
+      .update({ is_active: !profile.is_active })
+      .eq("id", profile.id);
 
     if (error) {
-      toast.error("Erro ao remover acesso.");
+      toast.error("Erro ao atualizar acesso.");
     } else {
-      toast.success("Acesso removido.");
+      toast.success(`Acesso ${profile.is_active ? "desativado" : "reativado"}.`);
       fetchProfiles();
     }
   };
@@ -236,7 +238,10 @@ export function ClientAccessTab({ clientId }: ClientAccessTabProps) {
             ) : (
               profiles.map((p) => (
                 <TableRow key={p.id}>
-                  <TableCell>{p.full_name || "Sem nome"}</TableCell>
+                  <TableCell>
+                    {p.full_name || "Sem nome"}
+                    {!p.is_active && <span className="ml-2 rounded bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">Inativo</span>}
+                  </TableCell>
                   <TableCell>{p.email}</TableCell>
                   <TableCell>
                     <div className="flex flex-wrap gap-1">
@@ -261,9 +266,9 @@ export function ClientAccessTab({ clientId }: ClientAccessTabProps) {
                         variant="ghost" 
                         size="icon" 
                         className="text-destructive"
-                        onClick={() => handleDeleteProfile(p.id)}
+                        onClick={() => handleToggleAccess(p)}
                       >
-                        <Trash2 className="w-4 h-4" />
+                        {p.is_active ? <Trash2 className="w-4 h-4" /> : <Shield className="w-4 h-4" />}
                       </Button>
                     </div>
                   </TableCell>

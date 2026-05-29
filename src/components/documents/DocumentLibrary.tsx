@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Eye, FileText, Trash2, Link as LinkIcon, FileSignature, Download } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import { openDocumentFile } from "@/services/privateFiles";
 
 type DocumentItem = {
   id: string;
@@ -62,7 +63,8 @@ export function DocumentLibrary({ clientIdFilter }: { clientIdFilter?: string })
   }, [clientIdFilter]);
 
   useEffect(() => {
-    void fetchDocuments();
+    const timer = window.setTimeout(() => void fetchDocuments(), 0);
+    return () => window.clearTimeout(timer);
   }, [fetchDocuments]);
 
   const handleDelete = async (id: string) => {
@@ -76,6 +78,14 @@ export function DocumentLibrary({ clientIdFilter }: { clientIdFilter?: string })
     } else {
        toast.error("Erro interno. Apenas admins.");
        setLoading(false);
+    }
+  };
+
+  const handleOpen = async (url: string) => {
+    try {
+      await openDocumentFile(url);
+    } catch {
+      toast.error("Nao foi possivel abrir este documento.");
     }
   };
 
@@ -134,21 +144,11 @@ export function DocumentLibrary({ clientIdFilter }: { clientIdFilter?: string })
       cell: ({ row }: CellContext<DocumentItem, unknown>) => {
         return (
           <div className="flex space-x-2 justify-end">
-             <Button variant="outline" size="sm" asChild title="Visualizar documento">
-                <a href={row.original.file_url} target="_blank" rel="noopener noreferrer">
+             <Button variant="outline" size="sm" onClick={() => void handleOpen(row.original.file_url)} title="Visualizar documento">
                    <Eye className="w-4 h-4 mr-2" /> Visualizar
-                </a>
              </Button>
-             <Button variant="ghost" size="icon" asChild title="Baixar arquivo">
-                <a 
-                  href={row.original.file_url} 
-                  download={row.original.title} 
-                  target="_blank" 
-                  rel="noopener noreferrer" 
-                  className="text-primary hover:text-primary/80"
-                >
+             <Button variant="ghost" size="icon" onClick={() => void handleOpen(row.original.file_url)} title="Baixar arquivo">
                    <Download className="w-4 h-4" />
-                </a>
              </Button>
              {isAdmin && (
                <Button 

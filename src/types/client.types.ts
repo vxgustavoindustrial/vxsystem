@@ -1,10 +1,6 @@
 export type ClientStatus = 'active' | 'inactive' | 'onboarding';
 
 export interface ModulesEnabled {
-  traffic: boolean;
-  social: boolean;
-  web: boolean;
-  crm: boolean;
   approvals: boolean;
   financial: boolean;
   documents: boolean;

@@ -7,7 +7,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 interface ClientModuleTasksViewProps {
-  module: 'traffic' | 'social' | 'web' | 'crm' | 'onboarding' | 'general';
+  module: 'general' | 'onboarding' | 'approvals' | 'financial' | 'documents' | 'support';
   view: 'kanban' | 'list';
 }
 
@@ -45,11 +45,7 @@ export function ClientModuleTasksView({ module, view }: ClientModuleTasksViewPro
           `)
           .eq('client_id', clientId);
 
-        if (module === 'onboarding') {
-          // Sem filtro restritivo: atua como roadmap global exibindo todas as tarefas
-        } else {
-          query = query.eq('module', module);
-        }
+        query = query.eq('module', module);
 
         const { data, error } = await query.order('created_at', { ascending: false });
 

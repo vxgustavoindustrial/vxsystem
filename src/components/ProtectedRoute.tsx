@@ -26,6 +26,10 @@ export function ProtectedRoute({ requiredRole }: ProtectedRouteProps) {
     return <AuthLoadingScreen />;
   }
 
+  if (!profile.is_active) {
+    return <Navigate to="/unauthorized" replace />;
+  }
+
   // 'member' pode acessar rotas de 'admin' (painel da agência)
   // Se for admin/member e estiver com impersonatedClientId, pode acessar rotas de 'client'
   const isAgencyRole = role === 'admin' || role === 'member';

@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { supabase } from '../../services/supabase';
 import { useAuthStore } from '../../store/authStore';
+import { Loader2, Eye, EyeOff } from 'lucide-react';
 
 import { toast } from 'sonner';
 
@@ -21,6 +22,7 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 
 export function LoginPage() {
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
 
   // Limpar qualquer lock/sessão travada ao montar a página de login
@@ -51,7 +53,7 @@ export function LoginPage() {
       if (!state.isLoading && state.user && state.profile) {
         const role = state.profile.role;
         if (role === 'admin' || role === 'member') {
-          navigate('/agency', { replace: true });
+          navigate('/admin', { replace: true });
         } else if (role === 'client') {
           navigate('/client', { replace: true });
         }
@@ -63,7 +65,7 @@ export function LoginPage() {
     if (!state.isLoading && state.user && state.profile) {
       const role = state.profile.role;
       if (role === 'admin' || role === 'member') {
-        navigate('/agency', { replace: true });
+        navigate('/admin', { replace: true });
       } else if (role === 'client') {
         navigate('/client', { replace: true });
       }
@@ -136,7 +138,7 @@ export function LoginPage() {
           console.log('[Login] Perfil carregado. Role:', profile.role, '- Redirecionando...');
           
           if (profile.role === 'admin' || profile.role === 'member') {
-            navigate('/agency', { replace: true });
+            navigate('/admin', { replace: true });
           } else {
             navigate('/client', { replace: true });
           }
@@ -157,37 +159,75 @@ export function LoginPage() {
 
   return (
     <div className="space-y-6">
-      <div className="space-y-2 text-center">
-        <h1 className="text-3xl font-bold">Entrar</h1>
-        <p className="text-muted-foreground">Insira as suas credenciais para acessar sua conta</p>
+      {/* Logo / Branding */}
+      <div className="text-center space-y-4">
+        <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20 mx-auto">
+          <span className="text-2xl font-black bg-gradient-to-br from-primary to-amber-500 bg-clip-text text-transparent">
+            VX
+          </span>
+        </div>
+        <div className="space-y-1.5">
+          <h1 className="text-2xl font-extrabold tracking-tight">
+            Acessar Plataforma
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Insira suas credenciais para entrar no painel
+          </p>
+        </div>
       </div>
       
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
         <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
+          <Label htmlFor="email" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            Email
+          </Label>
           <Input 
             id="email" 
             type="email" 
             placeholder="seu@email.com" 
+            className="h-11 rounded-xl bg-muted/50 border-border/80 focus-visible:ring-primary/40"
             {...register('email')} 
           />
-          {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
+          {errors.email && <p className="text-xs text-destructive font-medium">{errors.email.message}</p>}
         </div>
         
         <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="password">Senha</Label>
+          <Label htmlFor="password" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            Senha
+          </Label>
+          <div className="relative">
+            <Input 
+              id="password" 
+              type={showPassword ? 'text' : 'password'}
+              placeholder="••••••••"
+              className="h-11 rounded-xl bg-muted/50 border-border/80 focus-visible:ring-primary/40 pr-10"
+              {...register('password')} 
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+              tabIndex={-1}
+            >
+              {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
           </div>
-          <Input 
-            id="password" 
-            type="password" 
-            {...register('password')} 
-          />
-          {errors.password && <p className="text-sm text-destructive">{errors.password.message}</p>}
+          {errors.password && <p className="text-xs text-destructive font-medium">{errors.password.message}</p>}
         </div>
         
-        <Button className="w-full" type="submit" disabled={loading}>
-          {loading ? 'Entrando...' : 'Entrar'}
+        <Button 
+          className="w-full h-11 rounded-xl font-bold text-sm shadow-lg shadow-primary/20 hover:shadow-primary/30 hover:scale-[1.01] transition-all duration-200" 
+          type="submit" 
+          disabled={loading}
+        >
+          {loading ? (
+            <span className="flex items-center gap-2">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Entrando...
+            </span>
+          ) : (
+            'Entrar'
+          )}
         </Button>
       </form>
     </div>

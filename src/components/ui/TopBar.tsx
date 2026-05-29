@@ -1,4 +1,4 @@
-import { useState, useEffect, Fragment } from "react";
+﻿import { useState, useEffect, Fragment } from "react";
 import { useLocation, useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import { useSidebarStore } from "../../store/sidebarStore";
@@ -42,7 +42,11 @@ export function TopBar() {
       const cleanup = useNotificationStore.getState().initialize(profile.client_id);
       return cleanup;
     }
-  }, [role, profile?.client_id]);
+    if ((role === "admin" || role === "member") && profile?.id) {
+      const cleanup = useNotificationStore.getState().initialize(profile.id, "user");
+      return cleanup;
+    }
+  }, [role, profile?.client_id, profile?.id]);
 
   useEffect(() => {
     const fetchClients = async () => {
@@ -75,22 +79,19 @@ export function TopBar() {
   const pathNames = location.pathname.split("/").filter(x => x);
   
   const breadcrumbMap: Record<string, string> = {
-    agency: "Agência",
+    admin: "VX",
     client: "Cliente",
     clients: "Clientes",
-    calendar: "Calendário",
+    calendar: "CalendÃ¡rio",
     tasks: "Tarefas",
     flows: "Fluxos",
     team: "Equipe",
-    documents: "Documentos",
-    reports: "Relatórios",
-    onboarding: "Onboarding",
-    traffic: "Tráfego Pago",
-    social: "Social Media",
-    web: "Web",
-    approvals: "Aprovações",
-    support: "Suporte",
-    financial: "Financeiro",
+  reports: "RelatÃ³rios",
+  onboarding: "Onboarding",
+  approvals: "AprovaÃ§Ãµes",
+  support: "Suporte",
+  financial: "Financeiro",
+  documents: "Documentos",
   };
 
   return (
@@ -139,7 +140,7 @@ export function TopBar() {
                 <SelectValue placeholder="Selecione um cliente" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Visão Geral (Todos)</SelectItem>
+                <SelectItem value="all">VisÃ£o Geral (Todos)</SelectItem>
                 {clients.map((client) => (
                   <SelectItem key={client.id} value={client.id}>
                     {client.name}
@@ -171,7 +172,7 @@ export function TopBar() {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-80 bg-card border-border">
             <DropdownMenuLabel className="flex items-center justify-between">
-              <span>Notificações</span>
+              <span>NotificaÃ§Ãµes</span>
               {unreadCount > 0 && (
                 <Button variant="ghost" size="sm" onClick={markAllAsRead} className="h-auto p-0 text-xs text-primary">
                   Marcar todas lidas
@@ -206,7 +207,7 @@ export function TopBar() {
                 ))
               ) : (
                 <div className="p-4 text-center text-sm text-muted-foreground">
-                  Nenhuma notificação no momento
+                  Nenhuma notificaÃ§Ã£o no momento
                 </div>
               )}
             </div>
@@ -247,3 +248,4 @@ export function TopBar() {
     </header>
   );
 }
+

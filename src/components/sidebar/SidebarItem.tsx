@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { cn } from "../../lib/utils";
 import { useSidebarStore } from "../../store/sidebarStore";
@@ -39,21 +39,16 @@ export function SidebarItem({
   // Check if this item or any of its sub-items is active
   const isCurrentlyActive = isActive !== undefined 
     ? isActive 
-    : (href === "/agency" && location.pathname === "/agency") || 
+    : (href === "/admin" && location.pathname === "/admin") || 
       (href === "/client" && location.pathname === "/client") ||
-      (href !== "/agency" && href !== "/client" && location.pathname.startsWith(href));
+      (href !== "/admin" && href !== "/client" && location.pathname.startsWith(href));
 
   const hasSubItems = subItems && subItems.length > 0;
 
-  // Auto-expand if a sub-item is active
-  useEffect(() => {
-    if (hasSubItems) {
-      const isSubItemActive = subItems.some(item => location.pathname + location.search === item.href || location.pathname === item.href.split('?')[0]);
-      if (isSubItemActive) {
-        setIsOpen(true);
-      }
-    }
-  }, [location.pathname, location.search, hasSubItems, subItems]);
+  const hasActiveSubItem = hasSubItems && subItems.some(
+    (item) => location.pathname + location.search === item.href || location.pathname === item.href.split('?')[0]
+  );
+  const showSubItems = isOpen || hasActiveSubItem;
 
   if (disabled) {
     return (
@@ -109,7 +104,7 @@ export function SidebarItem({
         {hasSubItems && (
           <ChevronDown className={cn(
             "h-4 w-4 shrink-0 transition-transform duration-200",
-            isOpen && "rotate-180",
+            showSubItems && "rotate-180",
             isDesktop && "hidden group-hover:block"
           )} />
         )}
@@ -122,7 +117,7 @@ export function SidebarItem({
       </NavLink>
 
       {/* Sub-items list */}
-      {hasSubItems && isOpen && (
+      {hasSubItems && showSubItems && (
         <div className={cn(
           "flex flex-col overflow-hidden mb-1",
           isDesktop && "hidden group-hover:flex"
@@ -150,4 +145,3 @@ export function SidebarItem({
     </div>
   );
 }
-

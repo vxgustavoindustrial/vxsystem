@@ -55,7 +55,7 @@ Deno.serve(async (req: Request) => {
       const body: SyncBody = text ? JSON.parse(text) : {};
       client_id = body.client_id;
       if (body.lookback_days) lookback_days = body.lookback_days;
-    } catch (e) {
+    } catch {
       console.log('[sync-meta-ads] Chamada sem body ou body inválido');
     }
 
@@ -77,7 +77,6 @@ Deno.serve(async (req: Request) => {
     
     const timeRange = JSON.stringify({ since: sinceDate, until: today });
 
-    let syncedCount = 0;
     let metricsInserted = 0;
 
     for (const account of accounts) {
@@ -167,7 +166,7 @@ Deno.serve(async (req: Request) => {
                 .eq('meta_adset_id', metric.adset_id)
                 .maybeSingle();
                 
-               let adsetPayload = {
+               const adsetPayload = {
                  name: metric.adset_name,
                  campaign_id: localCampId,
                  updated_at: new Date().toISOString()
@@ -196,7 +195,7 @@ Deno.serve(async (req: Request) => {
                 .eq('external_id', metric.ad_id)
                 .maybeSingle();
                 
-               let adPayload = {
+               const adPayload = {
                  name: metric.ad_name,
                  campaign_id: localCampId,
                  adset_id: localAdsetId,
@@ -300,7 +299,6 @@ Deno.serve(async (req: Request) => {
           }
         }
         await supabase.from('meta_ad_accounts').update({ last_sync_at: new Date().toISOString() }).eq('id', account.id);
-        syncedCount++;
       } catch (accountErr: any) {
         console.error(`[sync-meta-ads] Falha na conta ${account.ad_account_id}:`, accountErr.message);
       }

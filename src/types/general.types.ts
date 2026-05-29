@@ -3,7 +3,7 @@ export interface Task {
   client_id?: string;
   title: string;
   description?: string;
-  module?: 'traffic' | 'social' | 'web' | 'crm' | 'general';
+  module?: 'general' | 'onboarding' | 'approvals' | 'financial' | 'documents' | 'support';
   status: 'todo' | 'in_progress' | 'review' | 'done';
   priority: 'low' | 'medium' | 'high' | 'urgent';
   assigned_to?: string;

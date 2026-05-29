@@ -8,7 +8,7 @@ interface NotificationState {
   setNotifications: (notifications: Notification[]) => void;
   markAsRead: (id: string) => void;
   markAllAsRead: () => void;
-  initialize: (clientId: string) => () => void;
+  initialize: (scopeId: string, scope?: 'client' | 'user') => () => void;
 }
 
 export const useNotificationStore = create<NotificationState>((set, get) => ({
@@ -38,8 +38,8 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
   },
   markAllAsRead: async () => {
     const notifications = get().notifications;
-    const clientId = notifications[0]?.client_id;
-    if (!clientId) return;
+    const unreadIds = notifications.filter(n => !n.read_at).map(n => n.id);
+    if (unreadIds.length === 0) return;
 
     set((state) => {
       const updated = state.notifications.map(n => ({
@@ -55,17 +55,17 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     await supabase
       .from('notifications')
       .update({ read_at: new Date().toISOString() })
-      .eq('client_id', clientId)
+      .in('id', unreadIds)
       .is('read_at', null);
   },
-  initialize: (clientId: string) => {
-    console.log('Initializing notification store for client:', clientId);
+  initialize: (scopeId: string, scope = 'client') => {
+    const field = scope === 'user' ? 'user_id' : 'client_id';
 
     const fetchNotifications = async () => {
       const { data, error } = await supabase
         .from('notifications')
         .select('*')
-        .eq('client_id', clientId)
+        .eq(field, scopeId)
         .order('created_at', { ascending: false })
         .limit(20);
       
@@ -77,12 +77,12 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     fetchNotifications();
 
     const channel = supabase
-      .channel(`notifications-${clientId}`)
+      .channel(`notifications-${scope}-${scopeId}`)
       .on('postgres_changes', { 
         event: '*', 
         schema: 'public', 
         table: 'notifications',
-        filter: `client_id=eq.${clientId}`
+        filter: `${field}=eq.${scopeId}`
       }, () => {
         fetchNotifications();
       })

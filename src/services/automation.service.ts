@@ -1,81 +1,80 @@
-import { supabase } from './supabase';
+﻿import { supabase } from './supabase';
 import { NotificationService } from './notification.service';
-
 
 export interface OnboardingTemplate {
   title: string;
   description?: string;
-  module: 'traffic' | 'social' | 'web' | 'general';
+  module: 'general' | 'onboarding' | 'approvals' | 'financial' | 'documents' | 'support';
   subtasks?: { title: string; description?: string }[];
 }
 
 const PHASE_1_TEMPLATE: OnboardingTemplate[] = [
   {
-    title: 'Análise e Estrutura de Redes Sociais',
-    description: 'Padronização e análise da estrutura visual e informativa das redes sociais.',
-    module: 'social',
+    title: 'Acesso a Area do Cliente',
+    description: 'Liberacao de login, senha e acesso inicial ao portal da VX.',
+    module: 'onboarding',
     subtasks: [
-      { title: 'Foto de Perfil', description: 'Verificação de qualidade e alinhamento de marca.' },
-      { title: 'Biografia', description: 'Revisão da Bio para conversão e clareza.' },
-      { title: 'Destaques', description: 'Organização dos destaques estratégicos.' },
-      { title: 'Feed', description: 'Avaliação do padrão visual das postagens.' },
-    ]
+      { title: 'Criar login do cliente', description: 'Gerar usuario e credenciais de entrada.' },
+      { title: 'Habilitar notificacoes', description: 'Garantir avisos de sistema e status.' },
+      { title: 'Validar permissões', description: 'Confirmar o que o cliente pode visualizar.' },
+    ],
   },
   {
-    title: 'Implementação CMM (CRM & Marketing)',
-    description: 'Configuração completa do ecossistema de atendimento e vendas.',
+    title: 'Upload dos Arquivos',
+    description: 'Recebimento dos arquivos corretos para iniciar o projeto.',
+    module: 'documents',
+    subtasks: [
+      { title: 'Receber STEP / PDF / JPEG / PNG', description: 'Verificar se os formatos estao corretos.' },
+      { title: 'Conferir briefing e informacoes basicas', description: 'Descricao do projeto e requisitos.' },
+      { title: 'Validar materiais complementares', description: 'Imagens e documentacoes extras.' },
+    ],
+  },
+  {
+    title: 'Processamento de Dados',
+    description: 'A equipe tecnica analisa, organiza e prepara o conteudo para execucao.',
     module: 'general',
     subtasks: [
-      { title: 'Fluxo de Cadência', description: 'Definição da frequência de contatos.' },
-      { title: 'Funil de Vendas', description: 'Configuração das etapas comerciais.' },
-      { title: 'Inteligência Artificial', description: 'Implementação da IA de atendimento.' },
-      { title: 'Automações', description: 'Configuração de gatilhos automáticos.' },
-      { title: 'Estágios da Pipeline', description: 'Organização visual do funil no sistema.' },
-    ]
+      { title: 'Em analise', description: 'Verificar se os dados estao completos.' },
+      { title: 'Em processo', description: 'Executar a montagem tecnica do projeto.' },
+      { title: 'Prazo de entrega', description: 'Definir e informar a previsao ao cliente.' },
+    ],
   },
-  {
-    title: 'Campanha Meta para WhatsApp',
-    description: 'Preparação técnica e criativa para anúncios voltados para conversão.',
-    module: 'traffic',
-    subtasks: [
-      { title: 'Criação da Campanha', description: 'Criação da campanha no Gerenciador de Anúncios.' },
-      { title: 'Anúncios (Criativos e Copy)', description: 'Identity visual e textos persuasivos.' },
-      { title: 'Conteúdo Redes Sociais', description: 'Gravação, edição e aprovação de materiais.' },
-    ]
-  }
 ];
 
 const PHASE_2_TEMPLATE: OnboardingTemplate[] = [
   {
-    title: 'Escalabilidade e Otimização',
-    description: 'Expansão dos resultados obtidos na fase de setup.',
-    module: 'traffic',
+    title: 'Download dos Arquivos',
+    description: 'Publicacao do arquivo final na biblioteca do cliente.',
+    module: 'documents',
     subtasks: [
-      { title: 'Análise de Métricas', description: 'Revisão detalhada do ROAS e CPA.' },
-      { title: 'Novos Públicos', description: 'Criação de Lookalike e públicos personalizados.' },
-      { title: 'Escala de Investimento', description: 'Aumento de verba estratégico.' },
-    ]
-  }
+      { title: 'Enviar arquivo finalizado', description: 'Disponibilizar para download seguro.' },
+      { title: 'Organizar biblioteca', description: 'Manter a versao mais recente em destaque.' },
+    ],
+  },
+  {
+    title: 'Instalacao no Oculos',
+    description: 'Entrega do software, tutoriais e treinamento inicial.',
+    module: 'support',
+    subtasks: [
+      { title: 'Liberar software VX', description: 'Disponibilizar o instalador necessario.' },
+      { title: 'Enviar tutorial de uso', description: 'Passo a passo de instalacao e operacao.' },
+      { title: 'Agendar treinamento inicial', description: 'Apoio com a equipe tecnica do cliente.' },
+    ],
+  },
 ];
 
 export const AutomationService = {
-  /**
-   * Inicializa o onboarding Fase 1 para um cliente
-   */
   async initializeOnboarding(clientId: string, userId: string) {
     try {
-      console.log('Iniciando Onboarding Fase 1...');
-      
-      // 1. Limpa tarefas do cliente que sejam de onboarding_phase1 para evitar duplicadas
+      console.log('Iniciando onboarding VX...');
+
       await supabase
         .from('tasks')
         .delete()
         .eq('client_id', clientId)
-        .eq('stage', 'onboarding_phase_1');
+        .in('stage', ['onboarding_phase_1', 'onboarding_phase_2']);
 
-      // 2. Aplica template
       for (const template of PHASE_1_TEMPLATE) {
-        // Criar tarefa pai
         const { data: parentTask, error: parentError } = await supabase
           .from('tasks')
           .insert({
@@ -93,13 +92,12 @@ export const AutomationService = {
 
         if (parentError) throw parentError;
 
-        // Criar subtarefas
-        if (template.subtasks) {
-          const subtasks = template.subtasks.map(s => ({
+        if (template.subtasks?.length) {
+          const subtasks = template.subtasks.map((subtask) => ({
             client_id: clientId,
             parent_id: parentTask.id,
-            title: s.title,
-            description: s.description || '',
+            title: subtask.title,
+            description: subtask.description || '',
             module: template.module,
             status: 'todo',
             priority: 'medium',
@@ -112,19 +110,17 @@ export const AutomationService = {
         }
       }
 
-      // 3. Atualiza o status do cliente
       await supabase
         .from('clients')
         .update({ status: 'onboarding', onboarding_completed: false })
         .eq('id', clientId);
 
-      // 4. Notificar o cliente
       await NotificationService.createNotification({
         clientId,
         type: 'task',
-        title: 'Novas Tarefas de Onboarding',
-        body: 'O onboarding da Fase 1 foi inicializado. Confira suas primeiras atividades!',
-        link: '/client/onboarding'
+        title: 'Novas tarefas de onboarding',
+        body: 'O onboarding inicial foi liberado. Confira suas primeiras atividades.',
+        link: '/client/onboarding',
       });
 
       return { success: true };
@@ -134,9 +130,6 @@ export const AutomationService = {
     }
   },
 
-  /**
-   * Gera a Fase 2 do projeto
-   */
   async generatePhase2(clientId: string, userId: string) {
     try {
       for (const template of PHASE_2_TEMPLATE) {
@@ -157,12 +150,12 @@ export const AutomationService = {
 
         if (parentError) throw parentError;
 
-        if (template.subtasks) {
-          const subtasks = template.subtasks.map(s => ({
+        if (template.subtasks?.length) {
+          const subtasks = template.subtasks.map((subtask) => ({
             client_id: clientId,
             parent_id: parentTask.id,
-            title: s.title,
-            description: s.description || '',
+            title: subtask.title,
+            description: subtask.description || '',
             module: template.module,
             status: 'todo',
             priority: 'medium',
@@ -174,50 +167,35 @@ export const AutomationService = {
           if (subError) throw subError;
         }
       }
-      // Notificar o cliente
+
       await NotificationService.createNotification({
         clientId,
         type: 'task',
-        title: 'Novas Tarefas da Fase 2',
-        body: 'A Fase 2 do seu projeto foi gerada. Veja as novas atividades planejadas!',
-        link: '/client/onboarding'
+        title: 'Novas tarefas da fase 2',
+        body: 'A segunda etapa do onboarding foi liberada.',
+        link: '/client/onboarding',
       });
 
       return { success: true };
     } catch (error) {
-      console.error('Erro ao gerar Fase 2:', error);
+      console.error('Erro ao gerar fase 2:', error);
       throw error;
     }
   },
 
-  /**
-   * Executa um fluxo personalizado para um cliente (ou apenas um passo específico).
-   */
-  async executeFlow(
-    flowId: string, 
-    clientId: string, 
-    userId: string, 
-    stepId?: string
-  ): Promise<{ tasksCreated: number }> {
-    // 1. Buscar o fluxo
+  async executeFlow(flowId: string, clientId: string, userId: string, stepId?: string): Promise<{ tasksCreated: number }> {
     const { data: flow, error: flowErr } = await supabase
       .from('flows')
       .select('*')
       .eq('id', flowId)
       .single();
-    
-    if (flowErr || !flow) throw new Error('Fluxo não encontrado.');
 
-    const steps = (flow.steps as any[]) || [];
-    
-    // 2. Filtrar os steps que vamos processar
-    // Se stepId for passado, filtramos apenas aquele step.
-    // Caso contrário, pegamos todos os steps do tipo 'action' (ou sem tipo definido, para compatibilidade).
-    const actionSteps = steps.filter(s => {
-      // Se tiver stepId, bate o ID
-      if (stepId) return s.id === stepId;
-      // Se não tiver stepId, pega todos que NÃO são trigger (ou seja, são ações)
-      return s.type !== 'trigger';
+    if (flowErr || !flow) throw new Error('Fluxo nao encontrado.');
+
+    const steps = (flow.steps as Array<Record<string, unknown>>) || [];
+    const actionSteps = steps.filter((step) => {
+      if (stepId) return step.id === stepId;
+      return step.type !== 'trigger';
     });
 
     if (actionSteps.length === 0) return { tasksCreated: 0 };
@@ -225,13 +203,12 @@ export const AutomationService = {
     let tasksCreated = 0;
 
     for (const step of actionSteps) {
-      const stage = step.stage || 'custom';
-      const module = step.module || 'general';
-      const priority = step.priority || 'medium';
-      const title = step.description || step.title || 'Tarefa de Fluxo';
-      const subtaskDefs = (step.subtasks as Array<{ title: string }>) || [];
+      const stage = String(step.stage || 'custom');
+      const module = (step.module as OnboardingTemplate['module']) || 'general';
+      const priority = (step.priority as 'low' | 'medium' | 'high' | 'urgent') || 'medium';
+      const title = String(step.description || step.title || 'Tarefa de Fluxo');
+      const subtaskDefs = (step.subtasks as Array<{ title: string }> | undefined) || [];
 
-      // Apagar tasks existentes do mesmo stage e mesmo título para esse cliente (evitar duplicatas exatas)
       await supabase
         .from('tasks')
         .delete()
@@ -240,7 +217,6 @@ export const AutomationService = {
         .eq('title', title)
         .is('parent_id', null);
 
-      // Criar tarefa pai
       const { data: parent, error: parentErr } = await supabase
         .from('tasks')
         .insert({
@@ -263,20 +239,19 @@ export const AutomationService = {
 
       tasksCreated++;
 
-      // Criar subtarefas
       if (subtaskDefs.length > 0) {
         const subs = subtaskDefs
-          .filter(s => s.title.trim() !== '') // Evitar subtarefas vazias
-          .map((s, idx) => ({
+          .filter((subtask) => subtask.title.trim() !== '')
+          .map((subtask, index) => ({
             client_id: clientId,
             parent_id: parent.id,
-            title: s.title,
+            title: subtask.title,
             module,
             status: 'todo',
             priority,
             created_by: userId,
             stage,
-            order: idx,
+            order: index,
             is_template: false,
           }));
 
@@ -290,33 +265,29 @@ export const AutomationService = {
         }
       }
     }
-    
-    // Notificar o cliente se tarefas foram criadas
+
     if (tasksCreated > 0) {
       await NotificationService.createNotification({
         clientId,
         type: 'task',
-        title: 'Fluxo de Atividades Atualizado',
-        body: `Novas tarefas foram preparadas para você. Confira os detalhes!`,
-        link: '/client/onboarding'
+        title: 'Fluxo de atividades atualizado',
+        body: 'Novas tarefas foram preparadas para voce.',
+        link: '/client/onboarding',
       });
     }
 
     return { tasksCreated };
   },
 
-  /**
-   * Cria uma tarefa de ajuste a partir de uma reprovação de arte/criativo
-   */
-  async createTaskFromRejection(clientId: string, userId: string, creativeData: { title: string, feedback: string }) {
+  async createTaskFromRejection(clientId: string, userId: string, creativeData: { title: string; feedback: string }) {
     try {
       const { error } = await supabase
         .from('tasks')
         .insert({
           client_id: clientId,
           title: `[Ajuste] - ${creativeData.title}`,
-          description: `Feedback do Cliente: ${creativeData.feedback}`,
-          module: 'social',
+          description: `Feedback do cliente: ${creativeData.feedback}`,
+          module: 'approvals',
           status: 'todo',
           priority: 'high',
           created_by: userId,
@@ -331,18 +302,15 @@ export const AutomationService = {
     }
   },
 
-  /**
-   * Converte um ticket de suporte em uma tarefa de produção
-   */
-  async createTaskFromTicket(clientId: string, userId: string, ticketData: { id: string, subject: string, description?: string }) {
+  async createTaskFromTicket(clientId: string, userId: string, ticketData: { id: string; subject: string; description?: string }) {
     try {
       const { error } = await supabase
         .from('tasks')
         .insert({
           client_id: clientId,
           title: `[Suporte] - ${ticketData.subject}`,
-          description: `Ticket ID: #${ticketData.id.split('-')[0]}\n\nDescrição: ${ticketData.description || 'Ver no ticket'}`,
-          module: 'general',
+          description: `Ticket ID: #${ticketData.id.split('-')[0]}\n\nDescricao: ${ticketData.description || 'Ver no ticket'}`,
+          module: 'support',
           status: 'todo',
           priority: 'medium',
           created_by: userId,

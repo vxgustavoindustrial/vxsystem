@@ -1,13 +1,11 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { PageHeader } from '../../../components/ui/PageHeader';
-import { EmptyState } from '../../../components/ui/EmptyState';
-import { Rocket, Loader2, LayoutGrid, List, Milestone } from 'lucide-react';
+import { Loader2, LayoutGrid, List, Milestone } from 'lucide-react';
 import { useAuthStore } from '../../../store/authStore';
 import { ClientModuleTasksView } from '@/components/modules/ClientModuleTasksView';
 import { supabase } from '../../../services/supabase';
-import type { Task } from '../../../types/general.types';
-import { OnboardingRoadmap } from '../../../modules/onboarding/components/OnboardingRoadmap';
+import { OnboardingVXSteps } from '../../../modules/onboarding/components/OnboardingVXSteps';
 import { CompletionScreen } from '../../../modules/onboarding/components/CompletionScreen';
 import { toast } from 'sonner';
 import type { Client } from '../../../types/client.types';
@@ -16,7 +14,6 @@ import { NotificationService } from '../../../services/notification.service';
 export function ClientOnboardingPage() {
   const { clientId } = useAuthStore();
   const [client, setClient] = useState<Client | null>(null);
-  const [tasks, setTasks] = useState<Task[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchParams] = useSearchParams();
   const viewParam = searchParams.get('view') as 'roadmap' | 'kanban' | 'list' | null;
@@ -35,16 +32,6 @@ export function ClientOnboardingPage() {
 
       if (clientError) throw clientError;
       setClient(clientData as Client);
-
-      // Busca todas as tarefas (pai + sub) desse cliente para atuar como timeline global
-      const { data: taskData, error: taskError } = await supabase
-        .from('tasks')
-        .select('*')
-        .eq('client_id', clientId)
-        .order('created_at', { ascending: true });
-
-      if (taskError) throw taskError;
-      setTasks((taskData as Task[]) || []);
     } catch (err: unknown) {
       console.error('Erro ao carregar dados:', err);
       toast.error('Erro ao carregar dados do onboarding.');
@@ -81,18 +68,7 @@ export function ClientOnboardingPage() {
     );
   }
 
-  if (tasks.length === 0) {
-    return (
-      <div className="space-y-6">
-        <PageHeader title="Estratégia" description="Acompanhe a implantação dos seus serviços." />
-        <EmptyState
-          icon={Rocket}
-          title="Nenhum plano ativo"
-          description="A equipe ainda está preparando o seu roadmap de ativação. Em breve ele aparecerá aqui."
-        />
-      </div>
-    );
-  }
+
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto pb-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -135,10 +111,7 @@ export function ClientOnboardingPage() {
 
       <div className="mt-6">
         {viewMode === 'roadmap' ? (
-          <OnboardingRoadmap
-            tasks={tasks}
-            readOnly={true}
-          />
+          <OnboardingVXSteps clientId={clientId || ''} />
         ) : (
           <ClientModuleTasksView module="onboarding" view={viewMode === 'kanban' ? 'kanban' : 'list'} />
         )}

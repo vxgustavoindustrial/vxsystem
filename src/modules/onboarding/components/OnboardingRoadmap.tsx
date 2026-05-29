@@ -1,15 +1,15 @@
-import { useState, useEffect } from 'react';
+﻿import { useEffect, useState, type ElementType } from 'react';
 import {
   CheckCircle2,
   Circle,
   ChevronDown,
   ChevronRight,
-  Share2,
-  Settings2,
-  Megaphone,
   Rocket,
-  Loader2,
+  Settings2,
+  Share2,
+  Megaphone,
   MessageSquare,
+  Loader2,
 } from 'lucide-react';
 import type { Task } from '@/types/general.types';
 import { cn } from '@/lib/utils';
@@ -20,34 +20,15 @@ import { ptBR } from 'date-fns/locale';
 interface OnboardingRoadmapProps {
   tasks: Task[];
   onToggleSubtask?: (subtaskId: string, currentStatus: string) => void;
-  isToggling?: string | null;
   readOnly?: boolean;
 }
 
-const MODULE_CONFIG: Record<string, { icon: React.ElementType; color: string; gradient: string; label: string }> = {
-  social: {
-    icon: Share2,
-    color: 'text-purple-400',
-    gradient: 'from-purple-500/20 to-purple-900/10',
-    label: 'Redes Sociais',
-  },
+const MODULE_CONFIG: Record<string, { icon: ElementType; color: string; gradient: string; label: string }> = {
   general: {
     icon: Settings2,
     color: 'text-sky-400',
     gradient: 'from-sky-500/20 to-sky-900/10',
-    label: 'CMM / CRM',
-  },
-  traffic: {
-    icon: Megaphone,
-    color: 'text-amber-400',
-    gradient: 'from-amber-500/20 to-amber-900/10',
-    label: 'Tráfego Pago',
-  },
-  web: {
-    icon: Rocket,
-    color: 'text-emerald-400',
-    gradient: 'from-emerald-500/20 to-emerald-900/10',
-    label: 'Web & SEO',
+    label: 'Operacional',
   },
   onboarding: {
     icon: Rocket,
@@ -55,20 +36,48 @@ const MODULE_CONFIG: Record<string, { icon: React.ElementType; color: string; gr
     gradient: 'from-blue-500/20 to-blue-900/10',
     label: 'Onboarding',
   },
+  approvals: {
+    icon: Share2,
+    color: 'text-purple-400',
+    gradient: 'from-purple-500/20 to-purple-900/10',
+    label: 'Aprovações',
+  },
+  financial: {
+    icon: Megaphone,
+    color: 'text-amber-400',
+    gradient: 'from-amber-500/20 to-amber-900/10',
+    label: 'Financeiro',
+  },
+  documents: {
+    icon: MessageSquare,
+    color: 'text-emerald-400',
+    gradient: 'from-emerald-500/20 to-emerald-900/10',
+    label: 'Documentos',
+  },
+  support: {
+    icon: Loader2,
+    color: 'text-violet-400',
+    gradient: 'from-violet-500/20 to-violet-900/10',
+    label: 'Suporte',
+  },
 };
 
 function getPhaseLabel(stage: string) {
-  if (stage === 'onboarding_phase_1') return 'Fase 1 — Setup Inicial';
-  if (stage === 'onboarding_phase_2') return 'Fase 2 — Escalabilidade';
+  if (stage === 'onboarding_access') return 'Acesso a Area do Cliente';
+  if (stage === 'onboarding_upload') return 'Upload dos Arquivos';
+  if (stage === 'onboarding_processing') return 'Processamento de Dados';
+  if (stage === 'onboarding_delivery') return 'Download dos Arquivos';
+  if (stage === 'onboarding_installation') return 'Instalacao no Oculos';
+  if (stage === 'onboarding_phase_1') return 'Fase 1 - Setup Inicial';
+  if (stage === 'onboarding_phase_2') return 'Fase 2 - Escalabilidade';
   if (stage === 'unknown') return 'Atividades Complementares';
   return stage;
 }
 
-export function OnboardingRoadmap({ tasks, onToggleSubtask, isToggling, readOnly = false }: OnboardingRoadmapProps) {
+export function OnboardingRoadmap({ tasks, onToggleSubtask, readOnly = false }: OnboardingRoadmapProps) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [commentsMap, setCommentsMap] = useState<Record<string, { id: string; content: string; created_at: string; author: string }[]>>({});
 
-  // Buscar comentários de todas as tarefas pai
   useEffect(() => {
     const parentIds = tasks.filter(t => !t.parent_id).map(t => t.id);
     if (parentIds.length === 0) return;
@@ -95,10 +104,10 @@ export function OnboardingRoadmap({ tasks, onToggleSubtask, isToggling, readOnly
         setCommentsMap(map);
       }
     };
-    loadComments();
+
+    void loadComments();
   }, [tasks]);
 
-  // Separar tarefas pai (sem parent_id) e subtarefas
   const parentTasks = tasks.filter(t => !t.parent_id);
   const subtasksMap = new Map<string, Task[]>();
   tasks.filter(t => t.parent_id).forEach(t => {
@@ -107,214 +116,119 @@ export function OnboardingRoadmap({ tasks, onToggleSubtask, isToggling, readOnly
     subtasksMap.set(t.parent_id!, existing);
   });
 
-  // Agrupar por stage
   const stages = [...new Set(parentTasks.map(t => t.stage || 'unknown'))];
 
   const toggleExpand = (taskId: string) => {
     setExpanded(prev => ({ ...prev, [taskId]: !prev[taskId] }));
   };
 
-  // Calcular progresso global (considera subtarefas + tarefas pai que não possuem subtarefas)
-  const allSubtasks = tasks.filter(t => t.parent_id);
-  const completedSubtasks = allSubtasks.filter(t => t.status === 'done');
-  
-  const parentsWithNoSubs = parentTasks.filter(pt => !subtasksMap.has(pt.id));
-  const completedParentsWithNoSubs = parentsWithNoSubs.filter(pt => pt.status === 'done');
-
-  const totalItems = allSubtasks.length + parentsWithNoSubs.length;
-  const completedItems = completedSubtasks.length + completedParentsWithNoSubs.length;
-
-  const globalProgress = totalItems > 0
-    ? Math.round((completedItems / totalItems) * 100)
-    : 0;
+  const toggleStatus = async (task: Task) => {
+    if (readOnly || !onToggleSubtask) return;
+    onToggleSubtask(task.id, task.status);
+  };
 
   return (
     <div className="space-y-8">
-      {/* Barra de progresso global */}
-      <div className="bg-card shadow-sm border border-border rounded-2xl p-5">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-semibold text-muted-foreground tracking-wide uppercase">
-            Progresso Geral
-          </h3>
-          <span className="text-2xl font-bold text-foreground">{globalProgress}%</span>
-        </div>
-        <div className="w-full h-3 bg-muted rounded-full overflow-hidden">
-          <div
-            className="h-full rounded-full transition-all duration-700 ease-out"
-            style={{
-              width: `${globalProgress}%`,
-              background: globalProgress === 100
-                ? 'linear-gradient(90deg, #22c55e, #10b981)'
-                : 'linear-gradient(90deg, #3b82f6, #6366f1)',
-            }}
-          />
-        </div>
-        <p className="text-xs text-muted-foreground mt-2">
-          {completedItems} de {totalItems} entregáveis concluídos
-        </p>
-      </div>
-
-      {/* Fases */}
-      {stages.map(stage => {
-        const phaseTasks = parentTasks.filter(t => (t.stage || 'unknown') === stage);
+      {stages.map((stage) => {
+        const stageTasks = parentTasks.filter(t => (t.stage || 'unknown') === stage);
+        const title = getPhaseLabel(stage);
 
         return (
-          <div key={stage} className="space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="h-px flex-1 bg-gradient-to-r from-border to-transparent" />
-              <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground/60">
-                {getPhaseLabel(stage)}
-              </h2>
-              <div className="h-px flex-1 bg-gradient-to-l from-border to-transparent" />
+          <section key={stage} className="space-y-4">
+            <div className="flex items-center gap-2">
+              <div className="h-2 w-2 rounded-full bg-primary" />
+              <h3 className="text-sm font-semibold uppercase tracking-[0.2em] text-muted-foreground">{title}</h3>
             </div>
 
-            <div className="grid gap-4">
-              {phaseTasks.map(parentTask => {
-                const subs = subtasksMap.get(parentTask.id) || [];
-                const completedSubs = subs.filter(s => s.status === 'done').length;
-                const totalSubs = subs.length;
-                const phaseProgress = totalSubs > 0 ? Math.round((completedSubs / totalSubs) * 100) : 0;
-                const isExpanded = expanded[parentTask.id] ?? true;
-                const config = MODULE_CONFIG[parentTask.module || 'general'] || MODULE_CONFIG.general;
-                const Icon = config.icon;
+            <div className="space-y-3">
+              {stageTasks.map((task) => {
+                const subtasks = subtasksMap.get(task.id) || [];
+                const completedSubtasks = subtasks.filter(subtask => subtask.status === 'done').length;
+                const progress = subtasks.length > 0 ? Math.round((completedSubtasks / subtasks.length) * 100) : 0;
+                const config = MODULE_CONFIG[task.module || 'general'] || MODULE_CONFIG.general;
+                const comments = commentsMap[task.id] || [];
+                const isExpanded = !!expanded[task.id];
+                const canEdit = !readOnly;
 
                 return (
-                  <div
-                    key={parentTask.id}
-                    className={cn(
-                      'rounded-2xl border transition-all duration-300 overflow-hidden',
-                      phaseProgress === 100
-                        ? 'border-emerald-200/50 bg-emerald-50 dark:bg-emerald-500/10 dark:border-emerald-500/20'
-                        : 'border-border bg-card shadow-sm'
-                    )}
-                  >
-                    {/* Header do card */}
-                    <button
-                      type="button"
-                      onClick={() => toggleExpand(parentTask.id)}
-                      className="w-full flex items-center gap-4 p-5 text-left hover:bg-muted/50 transition-colors"
-                    >
-                      <div className={cn(
-                        'w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-br shrink-0',
-                        config.gradient
-                      )}>
-                        <Icon className={cn('w-5 h-5', config.color)} />
+                  <div key={task.id} className={cn('rounded-2xl border bg-card shadow-sm transition-all', `bg-gradient-to-br ${config.gradient}`)}>
+                    <button type="button" className="flex w-full items-center justify-between gap-4 p-4 text-left" onClick={() => toggleExpand(task.id)}>
+                      <div className="flex items-center gap-3">
+                        <div className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-background/80', config.color)}>
+                          <config.icon className="h-4 w-4" />
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">{config.label}</p>
+                          <h4 className="text-base font-semibold">{task.title}</h4>
+                        </div>
                       </div>
 
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className={cn('text-[10px] font-bold uppercase tracking-wider', config.color)}>
-                            {config.label}
-                          </span>
-                        </div>
-                        <h3 className="text-foreground font-semibold text-base truncate">
-                          {parentTask.title}
-                        </h3>
-                        {parentTask.description && (
-                          <p className="text-muted-foreground text-xs mt-0.5 truncate">{parentTask.description}</p>
-                        )}
-                      </div>
-
-                      <div className="flex items-center gap-3 shrink-0">
-                        <div className="text-right">
-                          <span className="text-xs font-medium text-muted-foreground">
-                            {completedSubs}/{totalSubs}
-                          </span>
-                          <div className="w-16 h-1.5 bg-muted rounded-full mt-1 overflow-hidden">
-                            <div
-                              className="h-full rounded-full transition-all duration-500"
-                              style={{
-                                width: `${phaseProgress}%`,
-                                background: phaseProgress === 100
-                                  ? '#22c55e'
-                                  : config.color.includes('purple') ? '#a855f7'
-                                  : config.color.includes('sky') ? '#38bdf8'
-                                  : config.color.includes('amber') ? '#f59e0b'
-                                  : '#3b82f6',
-                              }}
-                            />
-                          </div>
-                        </div>
-                        {isExpanded ? (
-                          <ChevronDown className="w-4 h-4 text-muted-foreground/60" />
-                        ) : (
-                          <ChevronRight className="w-4 h-4 text-muted-foreground/60" />
-                        )}
+                      <div className="flex items-center gap-3 text-muted-foreground">
+                        <span className="text-xs font-medium">{progress}%</span>
+                        {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                       </div>
                     </button>
 
-                    {/* Subtarefas */}
-                    {isExpanded && subs.length > 0 && (
-                      <div className="border-t border-border px-5 py-3 space-y-1">
-                        {subs.sort((a, b) => (a.order ?? 0) - (b.order ?? 0)).map(sub => {
-                          const isDone = sub.status === 'done';
-                          const isTogglingThis = isToggling === sub.id;
+                    {isExpanded && (
+                      <div className="space-y-4 border-t px-4 pb-4 pt-3">
+                        {task.description && <p className="text-sm text-muted-foreground">{task.description}</p>}
 
-                          return (
-                            <div
-                              key={sub.id}
-                              className={cn(
-                                'flex items-center gap-3 py-2.5 px-3 rounded-lg transition-all group',
-                                isDone ? 'opacity-60' : 'hover:bg-accent/50',
-                                !readOnly && !isDone && 'cursor-pointer'
-                              )}
-                              onClick={() => {
-                                if (!readOnly && onToggleSubtask && !isTogglingThis) {
-                                  onToggleSubtask(sub.id, sub.status);
-                                }
-                              }}
-                            >
-                              {isTogglingThis ? (
-                                <Loader2 className="w-4 h-4 animate-spin text-blue-500 shrink-0" />
-                              ) : isDone ? (
-                                <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-                              ) : (
-                                <Circle className="w-4 h-4 text-muted-foreground/40 group-hover:text-muted-foreground transition-colors shrink-0" />
-                              )}
-                              <span className={cn(
-                                'text-sm flex-1',
-                                isDone ? 'text-muted-foreground line-through' : 'text-foreground'
-                              )}>
-                                {sub.title}
-                              </span>
-                              {sub.description && !isDone && (
-                                <span className="text-[10px] text-muted-foreground hidden sm:block max-w-[200px] truncate">
-                                  {sub.description}
-                                </span>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-
-                    {/* Comentários/Notas da equipe */}
-                    {isExpanded && (commentsMap[parentTask.id] || []).length > 0 && (
-                      <div className="border-t border-border px-5 py-3">
-                        <div className="flex items-center gap-1.5 mb-2">
-                          <MessageSquare className="w-3.5 h-3.5 text-blue-400 dark:text-blue-500" />
-                          <span className="text-[11px] font-semibold text-blue-500 dark:text-blue-400 uppercase tracking-wider">Notas da Equipe</span>
+                        <div className="grid gap-2 sm:grid-cols-2">
+                          <div className="rounded-xl bg-background/70 p-3 text-sm">
+                            <span className="block text-xs uppercase tracking-[0.16em] text-muted-foreground">Prazo</span>
+                            <span>{task.due_date ? format(new Date(task.due_date), 'dd/MM/yyyy', { locale: ptBR }) : 'Sem prazo'}</span>
+                          </div>
+                          <div className="rounded-xl bg-background/70 p-3 text-sm">
+                            <span className="block text-xs uppercase tracking-[0.16em] text-muted-foreground">Status</span>
+                            <span>{task.status}</span>
+                          </div>
                         </div>
-                        <div className="space-y-2">
-                          {(commentsMap[parentTask.id] || []).map(comment => (
-                            <div key={comment.id} className="bg-blue-50/60 dark:bg-blue-900/20 rounded-lg px-3 py-2">
-                              <div className="flex items-center justify-between mb-0.5">
-                                <span className="text-[10px] font-semibold text-blue-600 dark:text-blue-400">{comment.author}</span>
-                                <span className="text-[10px] text-blue-400 dark:text-blue-500/70">
-                                  {format(new Date(comment.created_at), "dd/MM 'às' HH:mm", { locale: ptBR })}
-                                </span>
+
+                        {subtasks.length > 0 && (
+                          <div className="space-y-2">
+                            <p className="text-sm font-semibold">Subtarefas</p>
+                            {subtasks.map((subtask) => {
+                              const done = subtask.status === 'done';
+                              return (
+                                <button
+                                  key={subtask.id}
+                                  type="button"
+                                  onClick={() => toggleStatus(subtask)}
+                                  className={cn(
+                                    'flex w-full items-center gap-3 rounded-xl border px-3 py-2 text-left transition-colors',
+                                    done ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-border bg-background/60',
+                                    canEdit && 'hover:border-primary/40'
+                                  )}
+                                >
+                                  {done ? <CheckCircle2 className="h-4 w-4 text-emerald-500" /> : <Circle className="h-4 w-4 text-muted-foreground" />}
+                                  <span className={cn('text-sm', done && 'line-through text-muted-foreground')}>{subtask.title}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+
+                        {comments.length > 0 && (
+                          <div className="space-y-2">
+                            <p className="text-sm font-semibold">Comentários</p>
+                            {comments.map((comment) => (
+                              <div key={comment.id} className="rounded-xl border bg-background/60 p-3 text-sm">
+                                <div className="mb-1 flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                                  <span>{comment.author}</span>
+                                  <span>{format(new Date(comment.created_at), 'dd/MM HH:mm', { locale: ptBR })}</span>
+                                </div>
+                                <p>{comment.content}</p>
                               </div>
-                              <p className="text-xs text-muted-foreground whitespace-pre-wrap">{comment.content}</p>
-                            </div>
-                          ))}
-                        </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
                 );
               })}
             </div>
-          </div>
+          </section>
         );
       })}
     </div>

@@ -1,5 +1,5 @@
 import { supabase } from '@/services/supabase';
-import type { SupportTicket } from '../types';
+import type { SupportTicket, SupportTicketWithClient } from '../types';
 
 export const SupportService = {
   async getTickets(clientId?: string) {
@@ -20,7 +20,7 @@ export const SupportService = {
     const { data, error } = await query;
 
     if (error) throw error;
-    return data as any[];
+    return (data || []) as SupportTicketWithClient[];
   },
 
   async getAllTickets() {
@@ -50,12 +50,12 @@ export const SupportService = {
   async getTicket(ticketId: string) {
     const { data, error } = await supabase
       .from('support_tickets')
-      .select('*')
+      .select('*, client:clients ( name )')
       .eq('id', ticketId)
       .single();
 
     if (error) throw error;
-    return data as SupportTicket;
+    return data as SupportTicketWithClient;
   },
 
   async createTicket(clientId: string, subject: string, description: string, priority: 'low' | 'medium' | 'high') {

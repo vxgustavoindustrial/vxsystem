@@ -4,10 +4,9 @@ export type Role = 'admin' | 'client' | 'member';
 
 export interface Permissions {
   approvals?: 'view' | 'manage';
-  social?: 'view' | 'manage';
-  traffic?: 'view' | 'manage';
-  web?: 'view' | 'manage';
   financial?: 'view' | 'manage';
+  documents?: 'view' | 'manage';
+  support?: 'view' | 'manage';
   onboarding?: 'view' | 'manage';
 }
 

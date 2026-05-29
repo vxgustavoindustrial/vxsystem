@@ -31,7 +31,7 @@ export interface FlowStep {
   action?: 'generate_task_group';
   title: string;
   description?: string;
-  module?: 'social' | 'traffic' | 'web' | 'general';
+  module?: 'general' | 'onboarding' | 'approvals' | 'financial' | 'documents' | 'support';
   priority?: 'low' | 'medium' | 'high' | 'urgent';
   stage?: string;
   subtasks?: FlowSubtaskDef[];
@@ -56,10 +56,12 @@ interface FlowBuilderModalProps {
 // CONSTANTS
 // ============================================================
 const MODULE_OPTIONS = [
-  { value: 'traffic', label: 'Tráfego Pago' },
-  { value: 'social',  label: 'Redes Sociais' },
-  { value: 'web',     label: 'Web & SEO' },
   { value: 'general', label: 'Geral / CRM' },
+  { value: 'onboarding', label: 'Onboarding' },
+  { value: 'approvals', label: 'Aprovações' },
+  { value: 'financial', label: 'Financeiro' },
+  { value: 'documents', label: 'Documentos' },
+  { value: 'support', label: 'Suporte' },
 ];
 
 const PRIORITY_OPTIONS = [

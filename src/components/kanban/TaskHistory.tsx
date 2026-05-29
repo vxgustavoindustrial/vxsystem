@@ -49,7 +49,8 @@ export function TaskHistory({ clientIdFilter }: { clientIdFilter?: string }) {
   }, [clientIdFilter]);
 
   useEffect(() => {
-    fetchHistory();
+    const timer = window.setTimeout(() => void fetchHistory(), 0);
+    return () => window.clearTimeout(timer);
   }, [fetchHistory]);
 
   const handleCardClick = (task: Task) => {
