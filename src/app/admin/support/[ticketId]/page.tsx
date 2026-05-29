@@ -11,7 +11,7 @@ export default function AgencyTicketDetailPage() {
     <div className="w-full h-full p-4">
       <TicketChatView 
         ticketId={ticketId} 
-        onBack={() => navigate("/agency/support")} 
+        onBack={() => navigate("/admin/support")} 
       />
     </div>
   );

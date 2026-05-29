@@ -15,13 +15,13 @@ export function AuthLoadingScreen() {
       </div>
       
       <div className="flex flex-col items-center space-y-2">
-        <h1 className="text-xl font-bold tracking-tight text-foreground italic">CAEN</h1>
+        <h1 className="text-xl font-bold tracking-tight text-foreground italic">VX INDUSTRIAL</h1>
         <div className="flex items-center gap-1">
           <span className="h-1.5 w-1.5 rounded-full bg-primary animate-bounce [animation-delay:-0.3s]" />
           <span className="h-1.5 w-1.5 rounded-full bg-primary animate-bounce [animation-delay:-0.15s]" />
           <span className="h-1.5 w-1.5 rounded-full bg-primary animate-bounce" />
         </div>
-        <p className="text-sm text-muted-foreground font-medium">Sincronizando agÃªncia...</p>
+        <p className="text-sm text-muted-foreground font-medium">Sincronizando sistemas...</p>
       </div>
       
       {/* RodapÃ© sutil indicando infraestrutura segura */}
