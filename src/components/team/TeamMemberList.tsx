@@ -23,6 +23,7 @@ export function TeamMemberList() {
     const { data } = await supabase
       .from("profiles")
       .select("*")
+      .not("role", "eq", "client")
       .order('created_at', { ascending: false });
 
     if (data) {

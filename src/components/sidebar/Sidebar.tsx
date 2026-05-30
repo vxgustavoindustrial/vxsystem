@@ -8,7 +8,7 @@ import { cn } from "../../lib/utils";
 import {
   LayoutDashboard, Phone, MapPin, Briefcase, FileText, 
   CreditCard, Lock, ShoppingCart, Upload, Cpu, Library, 
-  Monitor, Glasses, Headphones, LogOut, Hexagon, Users,
+  Glasses, Headphones, LogOut, Hexagon, Users,
   CalendarDays, ClipboardList, FolderOpen, Milestone
 } from "lucide-react";
 import { supabase } from "../../services/supabase";
@@ -63,7 +63,6 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         <SidebarItem icon={CreditCard} label="Mensalidades" href="/admin/monthly" onNavigate={onNavigate} />
       </SidebarGroup>
       <SidebarGroup label="OperaÃ§Ã£o do Cliente">
-        <SidebarItem icon={Monitor} label="Acesso do Cliente" href="/admin/access" onNavigate={onNavigate} />
         <SidebarItem icon={Upload} label="Uploads Recebidos" href="/admin/uploads" onNavigate={onNavigate} />
         <SidebarItem icon={Cpu} label="Processamento" href="/admin/processing" onNavigate={onNavigate} />
         <SidebarItem icon={Library} label="Biblioteca" href="/admin/library" onNavigate={onNavigate} />

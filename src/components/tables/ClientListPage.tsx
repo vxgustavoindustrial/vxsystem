@@ -1,4 +1,4 @@
-﻿import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { supabase } from "@/services/supabase";
 import { DataTable } from "@/components/tables/DataTable";
 import { type ColumnDef } from "@tanstack/react-table";
@@ -162,7 +162,7 @@ export function ClientListPage() {
         id: "actions",
         cell: ({ row }) => (
           <Button variant="ghost" size="sm" asChild>
-            <Link to={`/agency/clients/${row.original.id}`}>Ver Detalhes</Link>
+            <Link to={`/admin/clients/${row.original.id}`}>Ver Detalhes</Link>
           </Button>
         ),
       },

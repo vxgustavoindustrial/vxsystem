@@ -38,7 +38,6 @@ export function MemberRoleSelector({ member, onUpdate }: MemberRoleSelectorProps
         <SelectValue placeholder="Selecione..." />
       </SelectTrigger>
       <SelectContent>
-        <SelectItem value="client">Cliente</SelectItem>
         <SelectItem value="member">Membro / Equipe</SelectItem>
         <SelectItem value="admin">Administrador</SelectItem>
       </SelectContent>

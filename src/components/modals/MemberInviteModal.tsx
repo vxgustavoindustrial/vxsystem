@@ -47,7 +47,7 @@ export function MemberInviteModal({ open, onOpenChange }: MemberInviteModalProps
         <DialogHeader>
           <DialogTitle>Convidar Membro</DialogTitle>
           <DialogDescription>
-             Envie um link de acesso para a equipe ou clientes.
+             Envie um link de acesso para a equipe.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleInvite} className="space-y-4">
@@ -67,7 +67,6 @@ export function MemberInviteModal({ open, onOpenChange }: MemberInviteModalProps
             <Select value={role} onValueChange={setRole}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="client">Visualizador (Cliente)</SelectItem>
                 <SelectItem value="member">Membro / Equipe</SelectItem>
                 <SelectItem value="admin">Administrador Geral</SelectItem>
               </SelectContent>
