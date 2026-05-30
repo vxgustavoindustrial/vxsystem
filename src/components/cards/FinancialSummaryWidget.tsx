@@ -1,10 +1,8 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/services/supabase";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DollarSign, TrendingUp, Wallet, ArrowUpRight } from "lucide-react";
+import { DollarSign, TrendingUp, Wallet, ArrowUpRight, ReceiptText } from "lucide-react";
 import { startOfMonth, endOfMonth } from "date-fns";
-
-// FORCE UPDATE: 2026-03-31T21:26:00Z
 
 export function FinancialSummaryWidget() {
   const [loading, setLoading] = useState(true);
@@ -12,6 +10,8 @@ export function FinancialSummaryWidget() {
     investedMonth: 0,
     laborMonth: 0,
     pendingTotal: 0,
+    monthlyRecurring: 0,
+    activeSubscriptions: 0,
   });
 
   useEffect(() => {
@@ -46,14 +46,24 @@ export function FinancialSummaryWidget() {
           .select('amount')
           .neq('status', 'paid');
 
+        // 4. Get active subscriptions (monthly revenue)
+        const { data: subsData } = await supabase
+          .from('client_subscriptions')
+          .select('monthly_amount')
+          .eq('status', 'active');
+
         const invested = (adsData || []).reduce((acc, curr) => acc + Number(curr.amount || 0), 0);
         const labor = (laborData || []).reduce((acc, curr) => acc + Number(curr.amount || 0), 0);
         const pending = (pendingData || []).reduce((acc, curr) => acc + Number(curr.amount || 0), 0);
+        const recurring = (subsData || []).reduce((acc, curr) => acc + Number(curr.monthly_amount || 0), 0);
+        const activeCount = (subsData || []).length;
 
         setStats({
           investedMonth: invested,
           laborMonth: labor,
-          pendingTotal: pending
+          pendingTotal: pending,
+          monthlyRecurring: recurring,
+          activeSubscriptions: activeCount,
         });
       } catch (err) {
         console.error("Erro ao carregar estatísticas financeiras:", err);
@@ -74,7 +84,7 @@ export function FinancialSummaryWidget() {
   }
 
   return (
-    <div className="grid gap-4 md:grid-cols-3">
+    <div className="grid gap-4 md:grid-cols-4">
       <Card className="bg-gradient-to-br from-blue-50 to-white dark:from-blue-950/20 dark:to-slate-950 border-blue-100 dark:border-blue-900/30">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Investimentos (Mês)</CardTitle>
@@ -101,6 +111,21 @@ export function FinancialSummaryWidget() {
           </div>
           <p className="text-xs text-muted-foreground mt-1">
             Faturamento em serviços
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card className="bg-gradient-to-br from-emerald-50 to-white dark:from-emerald-950/20 dark:to-slate-950 border-emerald-100 dark:border-emerald-900/30">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Mensalidades (MRR)</CardTitle>
+          <ReceiptText className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold text-emerald-700 dark:text-emerald-300">
+            {formatCurrency(stats.monthlyRecurring)}
+          </div>
+          <p className="text-xs text-muted-foreground mt-1">
+            {stats.activeSubscriptions} assinatura(s) ativa(s)
           </p>
         </CardContent>
       </Card>

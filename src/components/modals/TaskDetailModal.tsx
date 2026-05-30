@@ -56,6 +56,7 @@ interface TaskDetailModalProps {
   onTaskUpdated?: () => void;
   onTaskDeleted?: (taskId: string) => void;
   readOnly?: boolean;
+  hideDelete?: boolean;
 }
 
 // ============================================================
@@ -215,7 +216,7 @@ function BadgeSelect({
 // ============================================================
 export function TaskDetailModal({
   task: initialTask, open, onOpenChange, subtasks: initialSubtasks = [],
-  onSubtaskToggle, onTaskUpdated, onTaskDeleted, readOnly = false
+  onSubtaskToggle, onTaskUpdated, onTaskDeleted, readOnly = false, hideDelete = false
 }: TaskDetailModalProps) {
   const { user } = useAuthStore();
 
@@ -775,7 +776,7 @@ export function TaskDetailModal({
               Ctrl+Enter para enviar • Visível para o cliente no Roadmap
             </p>
             {/* Delete entire task footer */}
-            {!readOnly && (
+            {!readOnly && !hideDelete && (
               <div className="pt-4 mt-6 border-t border-border flex justify-end">
                 <Button
                   type="button"

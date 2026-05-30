@@ -234,6 +234,7 @@ export function ClientModuleTasksView({ module, view }: ClientModuleTasksViewPro
           task={selectedTask}
           subtasks={subtasksMap.get(selectedTask.id) as unknown as SubtaskData[]}
           readOnly={!canManage}
+          hideDelete
         />
       )}
     </div>

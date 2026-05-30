@@ -6,10 +6,11 @@ import { SidebarGroup } from "./SidebarGroup";
 import { SidebarItem } from "./SidebarItem";
 import { cn } from "../../lib/utils";
 import {
-  LayoutDashboard, Phone, MapPin, Briefcase, FileText, 
+  LayoutDashboard, Briefcase, FileText, 
   CreditCard, Lock, ShoppingCart, Upload, Cpu, Library, 
   Glasses, Headphones, LogOut, Hexagon, Users,
-  CalendarDays, ClipboardList, FolderOpen, Milestone
+  CalendarDays, ClipboardList, FolderOpen, Milestone,
+  Radio
 } from "lucide-react";
 import { supabase } from "../../services/supabase";
 import { useAuthStore } from "../../store/authStore";
@@ -48,19 +49,15 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         <SidebarItem icon={Users} label="Clientes" href="/admin/clients" onNavigate={onNavigate} />
         <SidebarItem icon={Users} label="Equipe" href="/admin/team" onNavigate={onNavigate} />
       </SidebarGroup>
-      <SidebarGroup label="Comercial">
-        <SidebarItem icon={Phone} label="Contato" href="/admin/contact" onNavigate={onNavigate} />
-        <SidebarItem icon={MapPin} label="Visita" href="/admin/visit" onNavigate={onNavigate} />
-        <SidebarItem icon={Briefcase} label="ADM Comercial" href="/admin/commercial" onNavigate={onNavigate} />
-        <SidebarItem icon={FileText} label="Proposta" href="/admin/proposal" onNavigate={onNavigate} />
+      <SidebarGroup label="CRM">
+        <SidebarItem icon={Radio} label="CRM" href="/admin/crm" onNavigate={onNavigate} />
       </SidebarGroup>
-      <SidebarGroup label="GestÃ£o & Financeiro">
+      <SidebarGroup label="Financeiro">
+        <SidebarItem icon={CreditCard} label="Financeiro" href="/admin/financeiro" onNavigate={onNavigate} />
         <SidebarItem icon={FileText} label="Contratos" href="/admin/contracts" onNavigate={onNavigate} />
-        <SidebarItem icon={CreditCard} label="Pagamentos" href="/admin/payments" onNavigate={onNavigate} />
         <SidebarItem icon={Briefcase} label="Prest. Serv." href="/admin/services" onNavigate={onNavigate} />
         <SidebarItem icon={Lock} label="Confidencialidade" href="/admin/nda" onNavigate={onNavigate} />
         <SidebarItem icon={ShoppingCart} label="Aquisição Plat." href="/admin/platform" onNavigate={onNavigate} />
-        <SidebarItem icon={CreditCard} label="Mensalidades" href="/admin/monthly" onNavigate={onNavigate} />
       </SidebarGroup>
       <SidebarGroup label="OperaÃ§Ã£o do Cliente">
         <SidebarItem icon={Upload} label="Uploads Recebidos" href="/admin/uploads" onNavigate={onNavigate} />

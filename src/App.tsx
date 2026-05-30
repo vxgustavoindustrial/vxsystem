@@ -35,6 +35,8 @@ const AdminServicesPage = lazy(() => import('./modules/vx-admin/components/Admin
 const AdminNdaPage = lazy(() => import('./modules/vx-admin/components/AdminCommercialPages').then((mod) => ({ default: mod.AdminNdaPage })));
 const AdminPlatformPage = lazy(() => import('./modules/vx-admin/components/AdminCommercialPages').then((mod) => ({ default: mod.AdminPlatformPage })));
 const AdminMonthlyPage = lazy(() => import('./modules/vx-admin/components/AdminCommercialPages').then((mod) => ({ default: mod.AdminMonthlyPage })));
+const UnifiedFinancialPage = lazy(() => import('./app/admin/financial/UnifiedFinancialPage').then((mod) => ({ default: mod.UnifiedFinancialPage })));
+const CrmKanbanPage = lazy(() => import('./modules/crm/CrmKanbanPage').then((mod) => ({ default: mod.CrmKanbanPage })));
 const AdminUploadsPage = lazy(() => import('./modules/vx-admin/components/AdminOperationsPages').then((mod) => ({ default: mod.AdminUploadsPage })));
 const AdminProcessingPage = lazy(() => import('./modules/vx-admin/components/AdminOperationsPages').then((mod) => ({ default: mod.AdminProcessingPage })));
 const AdminLibraryPage = lazy(() => import('./modules/vx-admin/components/AdminOperationsPages').then((mod) => ({ default: mod.AdminLibraryPage })));
@@ -218,12 +220,14 @@ export default function App() {
           <Route element={<ProtectedRoute requiredRole="admin" />}>
             <Route element={<AdminLayout />}>
               <Route path="/admin" element={<AdminDashboard />} />
+              <Route path="/admin/crm" element={<CrmKanbanPage />} />
               <Route path="/admin/contact" element={<AdminContactPage />} />
               <Route path="/admin/visit" element={<AdminVisitPage />} />
               <Route path="/admin/commercial" element={<AdminCommercialPage />} />
               <Route path="/admin/proposal" element={<AdminProposalPage />} />
               <Route path="/admin/contracts" element={<AdminContractsPage />} />
               <Route path="/admin/payments" element={<AdminFinancialPage />} />
+              <Route path="/admin/financeiro" element={<UnifiedFinancialPage />} />
               <Route path="/admin/services" element={<AdminServicesPage />} />
               <Route path="/admin/nda" element={<AdminNdaPage />} />
               <Route path="/admin/platform" element={<AdminPlatformPage />} />

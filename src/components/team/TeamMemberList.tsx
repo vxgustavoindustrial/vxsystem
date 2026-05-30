@@ -3,7 +3,11 @@ import { supabase } from "@/services/supabase";
 import { DataTable } from "@/components/tables/DataTable";
 import { type ColumnDef } from "@tanstack/react-table";
 import { MemberRoleSelector } from "./MemberRoleSelector";
+import { MemberEditModal } from "@/components/modals/MemberEditModal";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { Pencil, Trash2, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 type TeamMember = {
   id: string;
@@ -17,6 +21,9 @@ type TeamMember = {
 export function TeamMemberList() {
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editMember, setEditMember] = useState<TeamMember | null>(null);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const fetchMembers = useCallback(async () => {
     setLoading(true);
@@ -41,6 +48,16 @@ export function TeamMemberList() {
     void load();
     return () => { isMounted = false; };
   }, [fetchMembers]);
+
+  const handleDelete = async (member: TeamMember) => {
+    if (!window.confirm(`Tem certeza que deseja excluir ${member.full_name}? Esta ação não pode ser desfeita.`)) return;
+    setDeletingId(member.id);
+    const { error } = await supabase.from("profiles").delete().eq("id", member.id);
+    setDeletingId(null);
+    if (error) return toast.error("Erro ao excluir membro.");
+    toast.success("Membro excluído.");
+    fetchMembers();
+  };
 
   const columns: ColumnDef<TeamMember>[] = [
     {
@@ -77,6 +94,36 @@ export function TeamMemberList() {
       header: "Entrou em",
       cell: ({ row }) => new Date(row.original.created_at).toLocaleDateString('pt-BR'),
     },
+    {
+      id: "actions",
+      header: "Ações",
+      cell: ({ row }) => {
+        const member = row.original;
+        const isDeleting = deletingId === member.id;
+        return (
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => { setEditMember(member); setEditModalOpen(true); }}
+              title="Editar membro"
+            >
+              <Pencil className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => handleDelete(member)}
+              disabled={isDeleting}
+              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+              title="Excluir membro"
+            >
+              {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+            </Button>
+          </div>
+        );
+      },
+    },
   ];
 
   return (
@@ -86,6 +133,12 @@ export function TeamMemberList() {
       ) : (
         <DataTable columns={columns} data={members} />
       )}
+      <MemberEditModal
+        member={editMember}
+        open={editModalOpen}
+        onOpenChange={setEditModalOpen}
+        onSuccess={fetchMembers}
+      />
     </div>
   );
 }
