@@ -9,9 +9,17 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import {
   FileSignature, Plus, Search, MapPin,
-  Loader2, Trash2
+  Loader2, Trash2, CalendarDays
 } from "lucide-react";
 import { format } from "date-fns";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from "@/components/ui/dialog";
 
 type ClientOption = { id: string; name: string };
 
@@ -34,12 +42,10 @@ interface Proposal {
 }
 
 const pipelineStages = [
-  { id: "new", label: "Novo", icon: "🆕" },
-  { id: "contacted", label: "Contatado", icon: "📞" },
-  { id: "qualified", label: "Qualificado", icon: "🎯" },
+  { id: "new", label: "Contato", icon: "📞" },
+  { id: "contacted", label: "Visita", icon: "🚗" },
+  { id: "qualified", label: "ADM Comercial", icon: "🏢" },
   { id: "proposal", label: "Proposta", icon: "📄" },
-  { id: "converted", label: "Convertido", icon: "✅" },
-  { id: "lost", label: "Perdido", icon: "❌" },
 ];
 
 const proposalStatusLabels: Record<string, string> = {
@@ -64,6 +70,30 @@ export function CrmKanbanPage() {
   // Filters
   const [clientFilter, setClientFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
+  const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
+
+  // Modals state
+  const [activeContact, setActiveContact] = useState<Contact | null>(null);
+  const [showVisitModal, setShowVisitModal] = useState(false);
+  const [showProposalModal, setShowProposalModal] = useState(false);
+
+  // Form states for Visit
+  const [visitForm, setVisitForm] = useState({
+    scheduled_at: "",
+    location: "",
+    objective: "",
+  });
+  const [savingVisit, setSavingVisit] = useState(false);
+
+  // Form states for Proposal
+  const [proposalForm, setProposalForm] = useState({
+    title: "",
+    amount: "",
+    valid_until: "",
+    description: "",
+    document_url: "",
+  });
+  const [savingProposal, setSavingProposal] = useState(false);
 
   // Data
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -139,16 +169,65 @@ export function CrmKanbanPage() {
     else { toast.success("Contato excluído."); void load(); }
   };
 
+  const handleSaveVisit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activeContact) return;
+    setSavingVisit(true);
+
+    const { error } = await supabase.from("sales_visits").insert({
+      contact_id: activeContact.id,
+      client_id: activeContact.client_id || null,
+      scheduled_at: new Date(visitForm.scheduled_at).toISOString(),
+      location: visitForm.location || null,
+      objective: visitForm.objective || null,
+      created_by: user?.id || null,
+    });
+
+    setSavingVisit(false);
+    if (error) {
+      toast.error("Erro ao agendar visita.");
+      console.error(error);
+    } else {
+      toast.success("Visita agendada com sucesso!");
+      setShowVisitModal(false);
+      setVisitForm({ scheduled_at: "", location: "", objective: "" });
+      void load();
+    }
+  };
+
+  const handleSaveProposal = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activeContact) return;
+    setSavingProposal(true);
+
+    const { error } = await supabase.from("sales_proposals").insert({
+      contact_id: activeContact.id,
+      client_id: activeContact.client_id || null,
+      title: proposalForm.title,
+      amount: proposalForm.amount ? Number(proposalForm.amount) : null,
+      valid_until: proposalForm.valid_until || null,
+      description: proposalForm.description || null,
+      document_url: proposalForm.document_url || null,
+      created_by: user?.id || null,
+    });
+
+    setSavingProposal(false);
+    if (error) {
+      toast.error("Erro ao criar proposta.");
+      console.error(error);
+    } else {
+      toast.success("Proposta criada com sucesso!");
+      setShowProposalModal(false);
+      setProposalForm({ title: "", amount: "", valid_until: "", description: "", document_url: "" });
+      void load();
+    }
+  };
+
   const getVisitForContact = (contactId: string) => visits.find(v => v.contact_id === contactId);
   const getProposalForContact = (contactId: string) => proposals.find(p => p.contact_id === contactId);
 
   const stats = useMemo(() => ({
     total: filteredContacts.length,
-    novos: filteredContacts.filter(c => c.status === "new").length,
-    contatados: filteredContacts.filter(c => c.status === "contacted").length,
-    qualificados: filteredContacts.filter(c => c.status === "qualified").length,
-    propostas: filteredContacts.filter(c => c.status === "proposal").length,
-    convertidos: filteredContacts.filter(c => c.status === "converted").length,
     receita: proposals.filter(p => p.status === "accepted").reduce((s, p) => s + Number(p.amount || 0), 0),
   }), [filteredContacts, proposals]);
 
@@ -175,13 +254,9 @@ export function CrmKanbanPage() {
       </header>
 
       {/* Stats */}
-      <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
-        {pipelineStages.slice(0, 5).map(stage => {
-          const count = stage.id === "new" ? stats.novos
-            : stage.id === "contacted" ? stats.contatados
-            : stage.id === "qualified" ? stats.qualificados
-            : stage.id === "proposal" ? stats.propostas
-            : stats.convertidos;
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        {pipelineStages.map(stage => {
+          const count = filteredContacts.filter(c => c.status === stage.id).length;
           return (
             <Card key={stage.id} className="border-border/60">
               <CardContent className="p-4 text-center">
@@ -283,8 +358,26 @@ export function CrmKanbanPage() {
       <div className="flex gap-4 overflow-x-auto pb-4" style={{ scrollbarWidth: "thin" }}>
         {pipelineStages.map(stage => {
           const stageContacts = filteredContacts.filter(c => c.status === stage.id);
+          const isOver = dragOverColumn === stage.id;
           return (
-            <div key={stage.id} className="min-w-[280px] w-[280px] shrink-0">
+            <div
+              key={stage.id}
+              className="min-w-[280px] w-[280px] shrink-0"
+              onDragOver={(e) => {
+                e.preventDefault();
+                setDragOverColumn(stage.id);
+              }}
+              onDragLeave={() => {
+                setDragOverColumn(null);
+              }}
+              onDrop={async (e) => {
+                setDragOverColumn(null);
+                const contactId = e.dataTransfer.getData("text/plain");
+                if (contactId) {
+                  await updateContactStatus(contactId, stage.id);
+                }
+              }}
+            >
               <div className="flex items-center justify-between mb-3">
                 <h3 className="font-semibold text-sm flex items-center gap-2">
                   {stage.icon} {stage.label}
@@ -293,7 +386,9 @@ export function CrmKanbanPage() {
                   {stageContacts.length}
                 </span>
               </div>
-              <div className="space-y-3 min-h-[200px] bg-muted/20 rounded-xl border border-border/50 p-3">
+              <div className={`space-y-3 min-h-[400px] rounded-xl border p-3 transition-all duration-200 ${
+                isOver ? "bg-primary/10 border-primary/40 border-dashed scale-[1.01]" : "bg-muted/20 border-border/50"
+              }`}>
                 {stageContacts.length === 0 ? (
                   <p className="text-xs text-muted-foreground text-center py-8">Nenhum contato</p>
                 ) : (
@@ -301,7 +396,14 @@ export function CrmKanbanPage() {
                     const visit = getVisitForContact(contact.id);
                     const proposal = getProposalForContact(contact.id);
                     return (
-                      <Card key={contact.id} className="border-border/60 hover:border-primary/40 transition-colors">
+                      <Card
+                        key={contact.id}
+                        draggable
+                        onDragStart={(e) => {
+                          e.dataTransfer.setData("text/plain", contact.id);
+                        }}
+                        className="border-border/60 hover:border-primary/40 transition-all duration-200 cursor-grab active:cursor-grabbing group relative"
+                      >
                         <CardContent className="p-3">
                           <div className="flex items-start justify-between mb-1">
                             <div className="flex-1 min-w-0">
@@ -352,13 +454,36 @@ export function CrmKanbanPage() {
                             </div>
                           )}
 
+                          {/* Quick action for Visita stage */}
+                          {contact.status === "contacted" && !visit && (
+                            <div className="mt-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="w-full text-xs h-7"
+                                onClick={() => {
+                                  setActiveContact(contact);
+                                  setShowVisitModal(true);
+                                }}
+                              >
+                                <CalendarDays className="h-3 w-3 mr-1" />Agendar Visita
+                              </Button>
+                            </div>
+                          )}
+
                           {/* Quick actions for proposal stage */}
                           {contact.status === "proposal" && !proposal && (
                             <div className="mt-2">
-                              <Button variant="outline" size="sm" className="w-full text-xs h-7" asChild>
-                                <a href="/admin/proposal">
-                                  <Plus className="h-3 w-3 mr-1" />Criar Proposta
-                                </a>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="w-full text-xs h-7"
+                                onClick={() => {
+                                  setActiveContact(contact);
+                                  setShowProposalModal(true);
+                                }}
+                              >
+                                <Plus className="h-3 w-3 mr-1" />Criar Proposta
                               </Button>
                             </div>
                           )}
@@ -372,6 +497,125 @@ export function CrmKanbanPage() {
           );
         })}
       </div>
+
+      {/* Dialog para Agendar Visita */}
+      <Dialog open={showVisitModal} onOpenChange={setShowVisitModal}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Agendar Visita</DialogTitle>
+            <DialogDescription>
+              Agende uma reunião ou visita para a empresa {activeContact?.company_name}.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSaveVisit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="visitDate">Data e Horário</Label>
+              <Input
+                id="visitDate"
+                type="datetime-local"
+                required
+                value={visitForm.scheduled_at}
+                onChange={e => setVisitForm({ ...visitForm, scheduled_at: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="visitLoc">Local ou Link</Label>
+              <Input
+                id="visitLoc"
+                placeholder="Ex: Google Meet ou Endereço físico"
+                value={visitForm.location}
+                onChange={e => setVisitForm({ ...visitForm, location: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="visitObj">Objetivo</Label>
+              <Textarea
+                id="visitObj"
+                placeholder="Objetivo da reunião..."
+                value={visitForm.objective}
+                onChange={e => setVisitForm({ ...visitForm, objective: e.target.value })}
+              />
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setShowVisitModal(false)}>Cancelar</Button>
+              <Button type="submit" disabled={savingVisit}>
+                {savingVisit ? "Salvando..." : "Agendar"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog para Criar Proposta */}
+      <Dialog open={showProposalModal} onOpenChange={setShowProposalModal}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Criar Proposta</DialogTitle>
+            <DialogDescription>
+              Crie uma nova proposta comercial para {activeContact?.company_name}.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSaveProposal} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="propTitle">Título da Proposta</Label>
+              <Input
+                id="propTitle"
+                required
+                placeholder="Ex: Proposta de Onboarding Industrial"
+                value={proposalForm.title}
+                onChange={e => setProposalForm({ ...proposalForm, title: e.target.value })}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="propAmount">Valor (R$)</Label>
+                <Input
+                  id="propAmount"
+                  type="number"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={proposalForm.amount}
+                  onChange={e => setProposalForm({ ...proposalForm, amount: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="propValid">Válida Até</Label>
+                <Input
+                  id="propValid"
+                  type="date"
+                  value={proposalForm.valid_until}
+                  onChange={e => setProposalForm({ ...proposalForm, valid_until: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="propUrl">Link do Documento</Label>
+              <Input
+                id="propUrl"
+                type="url"
+                placeholder="https://..."
+                value={proposalForm.document_url}
+                onChange={e => setProposalForm({ ...proposalForm, document_url: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="propDesc">Escopo/Descrição</Label>
+              <Textarea
+                id="propDesc"
+                placeholder="Escopo da proposta comercial..."
+                value={proposalForm.description}
+                onChange={e => setProposalForm({ ...proposalForm, description: e.target.value })}
+              />
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setShowProposalModal(false)}>Cancelar</Button>
+              <Button type="submit" disabled={savingProposal}>
+                {savingProposal ? "Salvando..." : "Criar Proposta"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

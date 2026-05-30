@@ -37,13 +37,14 @@ export function MemberEditModal({ member, open, onOpenChange, onSuccess }: Membe
     if (!member) return;
     setLoading(true);
 
-    const { error } = await supabase
-      .from("profiles")
-      .update({ full_name: name.trim(), email: email.trim() })
-      .eq("id", member.id);
+    const { error } = await supabase.rpc("update_team_member", {
+      member_id: member.id,
+      new_name: name.trim(),
+      new_email: email.trim()
+    });
 
     setLoading(false);
-    if (error) return toast.error("Erro ao atualizar membro.");
+    if (error) return toast.error(error.message || "Erro ao atualizar membro.");
     toast.success("Membro atualizado.");
     onSuccess();
     onOpenChange(false);

@@ -52,9 +52,9 @@ export function TeamMemberList() {
   const handleDelete = async (member: TeamMember) => {
     if (!window.confirm(`Tem certeza que deseja excluir ${member.full_name}? Esta ação não pode ser desfeita.`)) return;
     setDeletingId(member.id);
-    const { error } = await supabase.from("profiles").delete().eq("id", member.id);
+    const { error } = await supabase.rpc("delete_team_member", { member_id: member.id });
     setDeletingId(null);
-    if (error) return toast.error("Erro ao excluir membro.");
+    if (error) return toast.error(error.message || "Erro ao excluir membro.");
     toast.success("Membro excluído.");
     fetchMembers();
   };

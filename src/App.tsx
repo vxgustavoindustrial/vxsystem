@@ -20,21 +20,15 @@ const AdminDashboard = lazy(() => import('./app/admin/page').then((mod) => ({ de
 const AdminClientsPage = lazy(() => import('./app/admin/clients/page').then((mod) => ({ default: mod.AdminClientsPage })));
 const AdminClientDetailPage = lazy(() => import('./app/admin/clients/[id]/page').then((mod) => ({ default: mod.AdminClientDetailPage })));
 const AdminDocumentsPage = lazy(() => import('./app/admin/documents/page').then((mod) => ({ default: mod.AdminDocumentsPage })));
-const AdminFinancialPage = lazy(() => import('./app/admin/financial/page').then((mod) => ({ default: mod.AdminFinancialPage })));
 const AdminTasksPage = lazy(() => import('./app/admin/tasks/page').then((mod) => ({ default: mod.AdminTasksPage })));
 const AdminTeamPage = lazy(() => import('./app/admin/team/page').then((mod) => ({ default: mod.AdminTeamPage })));
 const AdminCalendarPage = lazy(() => import('./app/admin/calendar/page').then((mod) => ({ default: mod.AdminCalendarPage })));
 const AdminSupportPage = lazy(() => import('./app/admin/support/page'));
 const AdminTicketDetailPage = lazy(() => import('./app/admin/support/[ticketId]/page'));
-const AdminContactPage = lazy(() => import('./modules/vx-admin/components/AdminCommercialPages').then((mod) => ({ default: mod.AdminContactPage })));
-const AdminVisitPage = lazy(() => import('./modules/vx-admin/components/AdminCommercialPages').then((mod) => ({ default: mod.AdminVisitPage })));
-const AdminCommercialPage = lazy(() => import('./modules/vx-admin/components/AdminCommercialPages').then((mod) => ({ default: mod.AdminCommercialPage })));
-const AdminProposalPage = lazy(() => import('./modules/vx-admin/components/AdminCommercialPages').then((mod) => ({ default: mod.AdminProposalPage })));
 const AdminContractsPage = lazy(() => import('./modules/vx-admin/components/AdminCommercialPages').then((mod) => ({ default: mod.AdminContractsPage })));
 const AdminServicesPage = lazy(() => import('./modules/vx-admin/components/AdminCommercialPages').then((mod) => ({ default: mod.AdminServicesPage })));
 const AdminNdaPage = lazy(() => import('./modules/vx-admin/components/AdminCommercialPages').then((mod) => ({ default: mod.AdminNdaPage })));
 const AdminPlatformPage = lazy(() => import('./modules/vx-admin/components/AdminCommercialPages').then((mod) => ({ default: mod.AdminPlatformPage })));
-const AdminMonthlyPage = lazy(() => import('./modules/vx-admin/components/AdminCommercialPages').then((mod) => ({ default: mod.AdminMonthlyPage })));
 const UnifiedFinancialPage = lazy(() => import('./app/admin/financial/UnifiedFinancialPage').then((mod) => ({ default: mod.UnifiedFinancialPage })));
 const CrmKanbanPage = lazy(() => import('./modules/crm/CrmKanbanPage').then((mod) => ({ default: mod.CrmKanbanPage })));
 const AdminUploadsPage = lazy(() => import('./modules/vx-admin/components/AdminOperationsPages').then((mod) => ({ default: mod.AdminUploadsPage })));
@@ -221,17 +215,11 @@ export default function App() {
             <Route element={<AdminLayout />}>
               <Route path="/admin" element={<AdminDashboard />} />
               <Route path="/admin/crm" element={<CrmKanbanPage />} />
-              <Route path="/admin/contact" element={<AdminContactPage />} />
-              <Route path="/admin/visit" element={<AdminVisitPage />} />
-              <Route path="/admin/commercial" element={<AdminCommercialPage />} />
-              <Route path="/admin/proposal" element={<AdminProposalPage />} />
               <Route path="/admin/contracts" element={<AdminContractsPage />} />
-              <Route path="/admin/payments" element={<AdminFinancialPage />} />
               <Route path="/admin/financeiro" element={<UnifiedFinancialPage />} />
               <Route path="/admin/services" element={<AdminServicesPage />} />
               <Route path="/admin/nda" element={<AdminNdaPage />} />
               <Route path="/admin/platform" element={<AdminPlatformPage />} />
-              <Route path="/admin/monthly" element={<AdminMonthlyPage />} />
               <Route path="/admin/uploads" element={<AdminUploadsPage />} />
               <Route path="/admin/processing" element={<AdminProcessingPage />} />
               <Route path="/admin/library" element={<AdminLibraryPage />} />

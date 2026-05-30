@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { FileText, Loader2, MessageSquare, Rocket, UserCog, Wallet } from "lucide-react";
 import { toast } from "sonner";
@@ -13,7 +13,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ClientEditModal } from "@/components/modals/ClientEditModal";
 import { ClientAccessTab } from "@/components/team/ClientAccessTab";
 import { DocumentLibrary } from "@/components/documents/DocumentLibrary";
-import { ClientModuleTasksView } from "@/components/modules/ClientModuleTasksView";
 import { OnboardingRoadmap } from "@/modules/onboarding/components/OnboardingRoadmap";
 import { AutomationService } from "@/services/automation.service";
 import type { ClientWithProfile } from "@/types/client.types";
@@ -188,7 +187,6 @@ export function AdminClientDetailPage() {
             <UserCog className="mr-2 h-4 w-4" />
             Acessos
           </TabsTrigger>
-          <TabsTrigger value="tasks">Tarefas</TabsTrigger>
           <TabsTrigger value="documents">
             <FileText className="mr-2 h-4 w-4" />
             Documentos
@@ -279,10 +277,6 @@ export function AdminClientDetailPage() {
 
         <TabsContent value="access" className="pt-4">
           <ClientAccessTab clientId={id || ""} />
-        </TabsContent>
-
-        <TabsContent value="tasks" className="pt-4">
-          <ClientModuleTasksView module="onboarding" view="kanban" />
         </TabsContent>
 
         <TabsContent value="documents" className="pt-4">
