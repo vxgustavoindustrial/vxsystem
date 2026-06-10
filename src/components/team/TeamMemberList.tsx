@@ -14,6 +14,7 @@ type TeamMember = {
   email: string;
   full_name: string;
   role: string;
+  vx_role: string | null;
   avatar_url: string;
   created_at: string;
 };
@@ -84,9 +85,32 @@ export function TeamMemberList() {
     },
     {
       accessorKey: "role",
-      header: "Cargo / Permissão",
+      header: "Cargo",
       cell: ({ row }) => {
         return <MemberRoleSelector member={row.original} onUpdate={fetchMembers} />;
+      },
+    },
+    {
+      accessorKey: "vx_role",
+      header: "Nível de Acesso VX",
+      cell: ({ row }) => {
+        const vxRole = row.original.vx_role;
+        if (!vxRole) return <span className="text-xs text-muted-foreground">—</span>;
+        const colors: Record<string, string> = {
+          admin: "bg-purple-100 text-purple-700",
+          programador: "bg-blue-100 text-blue-700",
+          financeiro: "bg-amber-100 text-amber-700",
+        };
+        const labels: Record<string, string> = {
+          admin: "Admin",
+          programador: "Programador",
+          financeiro: "Financeiro",
+        };
+        return (
+          <span className={`text-[11px] px-2 py-0.5 rounded font-medium ${colors[vxRole] || ""}`}>
+            {labels[vxRole] || vxRole}
+          </span>
+        );
       },
     },
     {
@@ -102,14 +126,15 @@ export function TeamMemberList() {
         const isDeleting = deletingId === member.id;
         return (
           <div className="flex items-center gap-1">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => { setEditMember(member); setEditModalOpen(true); }}
-              title="Editar membro"
-            >
-              <Pencil className="h-4 w-4" />
-            </Button>
+              <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => { setEditMember(member); setEditModalOpen(true); }}
+                  title="Editar membro"
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+                
             <Button
               variant="ghost"
               size="icon"

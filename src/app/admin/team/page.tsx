@@ -7,6 +7,7 @@ import { MemberInviteModal } from "@/components/modals/MemberInviteModal";
 
 export function AdminTeamPage() {
   const [isInviteModalOpen, setInviteModalOpen] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   return (
     <div className="space-y-6">
@@ -21,11 +22,12 @@ export function AdminTeamPage() {
         </Button>
       </div>
 
-      <TeamMemberList />
+      <TeamMemberList key={refreshKey} />
       
       <MemberInviteModal 
         open={isInviteModalOpen} 
         onOpenChange={setInviteModalOpen}
+        onSuccess={() => setRefreshKey(k => k + 1)}
       />
     </div>
   );
