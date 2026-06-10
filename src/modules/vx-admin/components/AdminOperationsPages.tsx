@@ -275,24 +275,17 @@ export function AdminProjectOperationsPage({ view }: { view: "uploads" | "proces
     setSaving(true);
     const path = `${selected.client_id}/${selected.id}/result-${crypto.randomUUID()}.${extension}`;
 
-    const { data: uploadUrl, error: signedError } = await supabase.storage
+    const { error: uploadError } = await supabase.storage
       .from(PROJECTS_BUCKET)
-      .createSignedUploadUrl(path);
+      .upload(path, resultFile, {
+        contentType: resultFile.type || "application/octet-stream",
+        cacheControl: "3600",
+        upsert: true,
+      });
 
-    if (signedError || !uploadUrl) {
+    if (uploadError) {
       setSaving(false);
-      return toast.error(`Erro ao iniciar upload: ${signedError?.message || "URL nao gerada"}`);
-    }
-
-    const putRes = await fetch(uploadUrl.signedUrl, {
-      method: "PUT",
-      body: resultFile,
-      headers: { "Content-Type": resultFile.type || "application/octet-stream" },
-    });
-
-    if (!putRes.ok) {
-      setSaving(false);
-      return toast.error(`Erro ao enviar entrega (HTTP ${putRes.status}). Tente novamente.`);
+      return toast.error(`Erro ao enviar entrega: ${uploadError.message}`);
     }
     const result = await supabase.from("vx_project_files").insert({
       project_id: selected.id,
