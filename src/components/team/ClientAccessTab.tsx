@@ -358,12 +358,12 @@ export function ClientAccessTab({ clientId }: ClientAccessTabProps) {
 
             <div className="space-y-2">
               <Label htmlFor="acc-role">Nível de Acesso</Label>
-              <Select value={clientRole ?? ''} onValueChange={(v) => setClientRole(v === '' ? null : v as ClientRole)}>
+              <Select value={clientRole ?? 'completo'} onValueChange={(v) => setClientRole(v === 'completo' ? null : v as ClientRole)}>
                 <SelectTrigger id="acc-role">
                   <SelectValue placeholder="Selecione o nível de acesso" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Completo (sem restrições)</SelectItem>
+                  <SelectItem value="completo">Completo (sem restrições)</SelectItem>
                   <SelectItem value="projetista">Projetista (upload/download de projetos)</SelectItem>
                   <SelectItem value="financeiro">Financeiro (apenas faturas e contratos)</SelectItem>
                 </SelectContent>
@@ -423,12 +423,12 @@ export function ClientAccessTab({ clientId }: ClientAccessTabProps) {
             
             <div className="space-y-2">
               <Label htmlFor="edit-role">Nível de Acesso</Label>
-              <Select value={editClientRole ?? ''} onValueChange={(v) => setEditClientRole(v === '' ? null : v as ClientRole)}>
+              <Select value={editClientRole ?? 'completo'} onValueChange={(v) => setEditClientRole(v === 'completo' ? null : v as ClientRole)}>
                 <SelectTrigger id="edit-role">
                   <SelectValue placeholder="Selecione o nível de acesso" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Completo (sem restrições)</SelectItem>
+                  <SelectItem value="completo">Completo (sem restrições)</SelectItem>
                   <SelectItem value="projetista">Projetista (upload/download de projetos)</SelectItem>
                   <SelectItem value="financeiro">Financeiro (apenas faturas e contratos)</SelectItem>
                 </SelectContent>
