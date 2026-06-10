@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { Cpu, Download, FileUp, Glasses, Loader2, Monitor, PackageCheck, Plus, Users } from "lucide-react";
+import { Cpu, Download, FileUp, Glasses, Loader2, Monitor, PackageCheck, Plus, Users, Archive } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/services/supabase";
 import { useAuthStore } from "@/store/authStore";
@@ -122,6 +122,47 @@ async function downloadProjectFile(file: ProjectFile) {
   window.open(data.signedUrl, "_blank", "noopener,noreferrer");
 }
 
+async function downloadProjectZip(project: Project) {
+  const files = (project.vx_project_files || []).filter((file) => !file.is_result);
+  if (!files.length) return toast.error("Nenhum arquivo para baixar.");
+
+  const { data: sessionData } = await supabase.auth.getSession();
+  const accessToken = sessionData?.session?.access_token;
+  if (!accessToken) return toast.error("Sessao expirada. Faca login novamente.");
+
+  const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+
+  const res = await fetch(`${SUPABASE_URL}/functions/v1/zip-files`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({
+      bucket: PROJECTS_BUCKET,
+      files: files.map((f) => ({ name: f.file_name, path: f.file_url })),
+    }),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => null);
+    return toast.error(err?.error || "Erro ao gerar zip.");
+  }
+
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  const zipName = project.title
+    ? `${project.title.replace(/[^a-zA-Z0-9]/g, "_")}_files.zip`
+    : `vx_files_${Date.now()}.zip`;
+  link.download = zipName;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
 export function AdminProjectOperationsPage({ view }: { view: "uploads" | "processing" | "library" }) {
   const profile = useAuthStore((s) => s.profile);
   const vxRole = profile?.vx_role ?? null;
@@ -228,8 +269,15 @@ export function AdminProjectOperationsPage({ view }: { view: "uploads" | "proces
                     <Info title="Cores e luzes" value={selected.lighting_details} />
                     <Info title="Criado em" value={new Date(selected.created_at).toLocaleString("pt-BR")} />
                   </div>
-                  <Files files={(selected.vx_project_files || []).filter((file) => !file.is_result)} />
-                  {isVxAdmin && <Button onClick={() => void updateProject({ status: "processing" })} disabled={selected.status !== "analysis" || saving}>Enviar para processamento</Button>}
+                  <Files files={(selected.vx_project_files || []).filter((file) => !file.is_result)} allowDownload />
+                  <div className="flex gap-2">
+                    {(selected.vx_project_files || []).filter((file) => !file.is_result).length > 0 && (
+                      <Button variant="outline" onClick={() => void downloadProjectZip(selected)} disabled={saving}>
+                        <Archive className="mr-2 h-4 w-4" />Baixar tudo (.zip)
+                      </Button>
+                    )}
+                    {isVxAdmin && <Button onClick={() => void updateProject({ status: "processing" })} disabled={selected.status !== "analysis" || saving}>Enviar para processamento</Button>}
+                  </div>
                 </div>
               )}
               {view === "processing" && (
