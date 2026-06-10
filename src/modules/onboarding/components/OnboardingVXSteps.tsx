@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Lock,
   UploadCloud,
@@ -92,6 +92,9 @@ export function OnboardingVXSteps({ clientId, initialStep = 1 }: OnboardingVXSte
   const [softwares, setSoftwares] = useState<VXSoftware[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const isSubmittingRef = useRef(false);
+  const [editingClientProject, setEditingClientProject] = useState<VXProject | null>(null);
+  const [editClientForm, setEditClientForm] = useState({ title: "", description: "", animation_details: "", lighting_details: "" });
 
   // Form State
   const [title, setTitle] = useState('');
@@ -238,6 +241,8 @@ export function OnboardingVXSteps({ clientId, initialStep = 1 }: OnboardingVXSte
       return;
     }
 
+    if (isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
     setIsSubmitting(true);
     try {
       // 1. Criar o projeto
@@ -312,7 +317,52 @@ export function OnboardingVXSteps({ clientId, initialStep = 1 }: OnboardingVXSte
       toast.error('Ocorreu um erro ao enviar o projeto. Tente novamente.');
     } finally {
       setIsSubmitting(false);
+      isSubmittingRef.current = false;
     }
+  };
+
+  const startClientEdit = (proj: VXProject) => {
+    setEditingClientProject(proj);
+    setEditClientForm({
+      title: proj.title,
+      description: proj.description || "",
+      animation_details: proj.animation_details || "",
+      lighting_details: proj.lighting_details || "",
+    });
+  };
+
+  const saveClientEdit = async () => {
+    if (!editingClientProject) return;
+    setIsSubmitting(true);
+    const { error } = await supabase.from("vx_projects").update({
+      title: editClientForm.title.trim(),
+      description: editClientForm.description.trim() || null,
+      animation_details: editClientForm.animation_details.trim() || null,
+      lighting_details: editClientForm.lighting_details.trim() || null,
+    }).eq("id", editingClientProject.id);
+    setIsSubmitting(false);
+    if (error) return toast.error("Erro ao salvar edicao.");
+    toast.success("Projeto atualizado.");
+    setEditingClientProject(null);
+    await loadData();
+  };
+
+  const deleteClientProject = async (proj: VXProject) => {
+    if (!window.confirm(`Excluir o projeto "${proj.title}"? Esta acao nao pode ser desfeita.`)) return;
+    setIsSubmitting(true);
+    const { data: files } = await supabase.from("vx_project_files").select("file_url").eq("project_id", proj.id);
+    if (files) {
+      for (const file of files) {
+        await supabase.storage.from("vx-projects").remove([file.file_url]);
+      }
+    }
+    await supabase.from("vx_project_files").delete().eq("project_id", proj.id);
+    const { error } = await supabase.from("vx_projects").delete().eq("id", proj.id);
+    setIsSubmitting(false);
+    if (error) return toast.error("Erro ao excluir projeto.");
+    toast.success("Projeto excluido.");
+    setEditingClientProject(null);
+    await loadData();
   };
 
   const getStatusLabel = (status: VXProject['status']) => {
@@ -665,14 +715,49 @@ export function OnboardingVXSteps({ clientId, initialStep = 1 }: OnboardingVXSte
               <div className="space-y-6">
                 {/* Visual Tracker Cards */}
                 <div className="bg-muted/30 border border-border/50 rounded-2xl p-6">
-                  <div className="flex justify-between items-center mb-2">
-                    <h3 className="font-bold text-base">{selectedProject.title}</h3>
-                    <span className={cn("px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider", getStatusBadgeClass(selectedProject.status))}>
-                      {getStatusLabel(selectedProject.status)}
-                    </span>
+                  {editingClientProject?.id === selectedProject.id ? (
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Titulo</label>
+                        <input type="text" value={editClientForm.title} onChange={(e) => setEditClientForm({ ...editClientForm, title: e.target.value })} className="w-full bg-muted/50 border border-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Descricao</label>
+                        <textarea value={editClientForm.description} onChange={(e) => setEditClientForm({ ...editClientForm, description: e.target.value })} rows={3} className="w-full bg-muted/50 border border-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none" />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Animacoes e interacoes</label>
+                        <textarea value={editClientForm.animation_details} onChange={(e) => setEditClientForm({ ...editClientForm, animation_details: e.target.value })} rows={2} className="w-full bg-muted/50 border border-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none" />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Cores e luzes</label>
+                        <textarea value={editClientForm.lighting_details} onChange={(e) => setEditClientForm({ ...editClientForm, lighting_details: e.target.value })} rows={2} className="w-full bg-muted/50 border border-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none" />
+                      </div>
+                      <div className="flex gap-2">
+                        <button onClick={() => void saveClientEdit()} disabled={isSubmitting || !editClientForm.title.trim()} className="px-4 py-2 bg-primary text-primary-foreground font-bold text-xs rounded-xl disabled:opacity-50">{isSubmitting ? "Salvando..." : "Salvar"}</button>
+                        <button onClick={() => setEditingClientProject(null)} disabled={isSubmitting} className="px-4 py-2 border border-border font-bold text-xs rounded-xl hover:bg-muted">Cancelar</button>
+                      </div>
+                    </div>
+                  ) : (
+                  <div>
+                    <div className="flex justify-between items-center mb-2">
+                      <h3 className="font-bold text-base">{selectedProject.title}</h3>
+                      <div className="flex items-center gap-2">
+                        {!isFinanceiro && selectedProject.status === 'analysis' && (
+                          <>
+                            <button onClick={() => startClientEdit(selectedProject)} className="text-[10px] font-bold text-primary hover:underline">Editar</button>
+                            <button onClick={() => void deleteClientProject(selectedProject)} disabled={isSubmitting} className="text-[10px] font-bold text-destructive hover:underline">Excluir</button>
+                          </>
+                        )}
+                        <span className={cn("px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider", getStatusBadgeClass(selectedProject.status))}>
+                          {getStatusLabel(selectedProject.status)}
+                        </span>
+                      </div>
+                    </div>
+                    {selectedProject.description && (
+                      <p className="text-xs text-muted-foreground line-clamp-2 max-w-2xl">{selectedProject.description}</p>
+                    )}
                   </div>
-                  {selectedProject.description && (
-                    <p className="text-xs text-muted-foreground line-clamp-2 max-w-2xl">{selectedProject.description}</p>
                   )}
 
                   {/* Stepper Visual */}

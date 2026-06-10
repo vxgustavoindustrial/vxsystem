@@ -122,7 +122,7 @@ async function downloadProjectFile(file: ProjectFile) {
   window.open(data.signedUrl, "_blank", "noopener,noreferrer");
 }
 
-async function downloadProjectZip(project: Project) {
+async function downloadProjectZip(project: Project, onReload?: () => void) {
   const files = (project.vx_project_files || []).filter((file) => !file.is_result);
   if (!files.length) return toast.error("Nenhum arquivo para baixar.");
 
@@ -161,6 +161,14 @@ async function downloadProjectZip(project: Project) {
   link.click();
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
+
+  if (project.status === "analysis") {
+    const { error } = await supabase.from("vx_projects").update({ status: "processing" }).eq("id", project.id);
+    if (!error) {
+      toast.success("Projeto avancado para processamento.");
+      onReload?.();
+    }
+  }
 }
 
 export function AdminProjectOperationsPage({ view }: { view: "uploads" | "processing" | "library" }) {
@@ -173,6 +181,8 @@ export function AdminProjectOperationsPage({ view }: { view: "uploads" | "proces
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [resultFile, setResultFile] = useState<File | null>(null);
+  const [editingProject, setEditingProject] = useState<Project | null>(null);
+  const [editForm, setEditForm] = useState({ title: "", description: "", animation_details: "", lighting_details: "" });
   const load = useCallback(async () => {
     setLoading(true);
     const { data, error } = await supabase
@@ -210,6 +220,47 @@ export function AdminProjectOperationsPage({ view }: { view: "uploads" | "proces
       toast.success("Projeto atualizado.");
       void load();
     }
+  };
+
+  const deleteProject = async (project: Project) => {
+    if (!window.confirm(`Excluir o projeto "${project.title}"? Esta acao nao pode ser desfeita.`)) return;
+    setSaving(true);
+    const files = project.vx_project_files || [];
+    for (const file of files) {
+      await supabase.storage.from(PROJECTS_BUCKET).remove([file.file_url]);
+    }
+    await supabase.from("vx_project_files").delete().eq("project_id", project.id);
+    const { error } = await supabase.from("vx_projects").delete().eq("id", project.id);
+    setSaving(false);
+    if (error) return toast.error("Erro ao excluir projeto.");
+    toast.success("Projeto excluido.");
+    void load();
+  };
+
+  const startEdit = (project: Project) => {
+    setEditingProject(project);
+    setEditForm({
+      title: project.title,
+      description: project.description || "",
+      animation_details: project.animation_details || "",
+      lighting_details: project.lighting_details || "",
+    });
+  };
+
+  const saveEdit = async () => {
+    if (!editingProject) return;
+    setSaving(true);
+    const { error } = await supabase.from("vx_projects").update({
+      title: editForm.title.trim(),
+      description: editForm.description.trim() || null,
+      animation_details: editForm.animation_details.trim() || null,
+      lighting_details: editForm.lighting_details.trim() || null,
+    }).eq("id", editingProject.id);
+    setSaving(false);
+    if (error) return toast.error("Erro ao salvar edicao.");
+    toast.success("Projeto atualizado.");
+    setEditingProject(null);
+    void load();
   };
 
   const publishResult = async (event: FormEvent) => {
@@ -260,19 +311,32 @@ export function AdminProjectOperationsPage({ view }: { view: "uploads" | "proces
             ))}
           </CardContent></Card>
           {selected && (
-            <Card><CardHeader><div className="flex flex-wrap items-start justify-between gap-3"><div><CardTitle>{selected.title}</CardTitle><p className="mt-1 text-sm text-muted-foreground">{selected.clients?.name}</p></div><Status status={selected.status} /></div></CardHeader><CardContent className="space-y-6">
+            <Card><CardHeader><div className="flex flex-wrap items-start justify-between gap-3"><div><CardTitle>{selected.title}</CardTitle><p className="mt-1 text-sm text-muted-foreground">{selected.clients?.name}</p></div><div className="flex items-center gap-2"><Status status={selected.status} />{isVxAdmin && <><Button variant="ghost" size="sm" onClick={() => startEdit(selected)} disabled={saving}>Editar</Button><Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => void deleteProject(selected)} disabled={saving}>Excluir</Button></>}</div></div></CardHeader><CardContent className="space-y-6">
               {view === "uploads" && (
                 <div className="space-y-5">
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <Info title="Descricao" value={selected.description} />
-                    <Info title="Animacoes e interacoes" value={selected.animation_details} />
-                    <Info title="Cores e luzes" value={selected.lighting_details} />
-                    <Info title="Criado em" value={new Date(selected.created_at).toLocaleString("pt-BR")} />
-                  </div>
+                  {editingProject?.id === selected.id ? (
+                    <div className="space-y-4">
+                      <div className="space-y-2"><Label>Titulo</Label><Input value={editForm.title} onChange={(e) => setEditForm({ ...editForm, title: e.target.value })} /></div>
+                      <div className="space-y-2"><Label>Descricao</Label><Textarea value={editForm.description} onChange={(e) => setEditForm({ ...editForm, description: e.target.value })} /></div>
+                      <div className="space-y-2"><Label>Animacoes e interacoes</Label><Textarea value={editForm.animation_details} onChange={(e) => setEditForm({ ...editForm, animation_details: e.target.value })} /></div>
+                      <div className="space-y-2"><Label>Cores e luzes</Label><Textarea value={editForm.lighting_details} onChange={(e) => setEditForm({ ...editForm, lighting_details: e.target.value })} /></div>
+                      <div className="flex gap-2">
+                        <Button onClick={() => void saveEdit()} disabled={saving || !editForm.title.trim()}>{saving ? "Salvando..." : "Salvar"}</Button>
+                        <Button variant="outline" onClick={() => setEditingProject(null)} disabled={saving}>Cancelar</Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <Info title="Descricao" value={selected.description} />
+                      <Info title="Animacoes e interacoes" value={selected.animation_details} />
+                      <Info title="Cores e luzes" value={selected.lighting_details} />
+                      <Info title="Criado em" value={new Date(selected.created_at).toLocaleString("pt-BR")} />
+                    </div>
+                  )}
                   <Files files={(selected.vx_project_files || []).filter((file) => !file.is_result)} allowDownload />
                   <div className="flex gap-2">
                     {(selected.vx_project_files || []).filter((file) => !file.is_result).length > 0 && (
-                      <Button variant="outline" onClick={() => void downloadProjectZip(selected)} disabled={saving}>
+                      <Button variant="outline" onClick={() => void downloadProjectZip(selected, load)} disabled={saving}>
                         <Archive className="mr-2 h-4 w-4" />Baixar tudo (.zip)
                       </Button>
                     )}
