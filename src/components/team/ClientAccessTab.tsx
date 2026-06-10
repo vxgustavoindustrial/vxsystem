@@ -22,7 +22,8 @@ import {
 } from "@/components/ui/dialog";
 import { Loader2, Key, UserPlus, Copy, Trash2, Shield, Edit2 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
-import type { Permissions } from "@/types/auth.types";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import type { Permissions, ClientRole } from "@/types/auth.types";
 
 interface ClientAccessTabProps {
   clientId: string;
@@ -35,6 +36,7 @@ interface Profile {
   role: string;
   is_active: boolean;
   permissions?: Permissions;
+  client_role?: ClientRole;
 }
 
 export function ClientAccessTab({ clientId }: ClientAccessTabProps) {
@@ -46,6 +48,7 @@ export function ClientAccessTab({ clientId }: ClientAccessTabProps) {
   const [email, setEmail] = useState("");
   const [fullName, setFullName] = useState("");
   const [password, setPassword] = useState("");
+  const [clientRole, setClientRole] = useState<ClientRole>(null);
   const [permissions, setPermissions] = useState<Permissions>({
     approvals: 'view',
     financial: 'view',
@@ -60,6 +63,7 @@ export function ClientAccessTab({ clientId }: ClientAccessTabProps) {
   const [editingProfile, setEditingProfile] = useState<Profile | null>(null);
   const [editFullName, setEditFullName] = useState("");
   const [editPermissions, setEditPermissions] = useState<Permissions>({});
+  const [editClientRole, setEditClientRole] = useState<ClientRole>(null);
 
   const fetchProfiles = useCallback(async () => {
     setLoading(true);
@@ -99,7 +103,8 @@ export function ClientAccessTab({ clientId }: ClientAccessTabProps) {
           password,
           fullName,
           clientId,
-          permissions
+          permissions,
+          clientRole
         }
       });
 
@@ -122,6 +127,7 @@ export function ClientAccessTab({ clientId }: ClientAccessTabProps) {
     setEmail("");
     setFullName("");
     setPassword("");
+    setClientRole(null);
     setPermissions({
       approvals: 'view',
       financial: 'view',
@@ -134,6 +140,7 @@ export function ClientAccessTab({ clientId }: ClientAccessTabProps) {
   const openEditModal = (profile: Profile) => {
     setEditingProfile(profile);
     setEditFullName(profile.full_name || "");
+    setEditClientRole(profile.client_role ?? null);
     setEditPermissions(profile.permissions || {
       approvals: 'view',
       financial: 'view',
@@ -154,7 +161,8 @@ export function ClientAccessTab({ clientId }: ClientAccessTabProps) {
         .from("profiles")
         .update({
           full_name: editFullName,
-          permissions: editPermissions
+          permissions: editPermissions,
+          client_role: editClientRole
         })
         .eq("id", editingProfile.id);
 
@@ -218,6 +226,7 @@ export function ClientAccessTab({ clientId }: ClientAccessTabProps) {
             <TableRow>
               <TableHead>Nome</TableHead>
               <TableHead>E-mail</TableHead>
+              <TableHead>Nível</TableHead>
               <TableHead>Permissões</TableHead>
               <TableHead className="text-right">Ações</TableHead>
             </TableRow>
@@ -225,13 +234,13 @@ export function ClientAccessTab({ clientId }: ClientAccessTabProps) {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={4} className="text-center py-8">
+                <TableCell colSpan={5} className="text-center py-8">
                   <Loader2 className="w-6 h-6 animate-spin mx-auto" />
                 </TableCell>
               </TableRow>
             ) : profiles.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                   Nenhum usuário vinculado a este cliente.
                 </TableCell>
               </TableRow>
@@ -243,6 +252,19 @@ export function ClientAccessTab({ clientId }: ClientAccessTabProps) {
                     {!p.is_active && <span className="ml-2 rounded bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">Inativo</span>}
                   </TableCell>
                   <TableCell>{p.email}</TableCell>
+                  <TableCell>
+                    {p.client_role ? (
+                      <span className={`text-[11px] px-2 py-0.5 rounded font-medium ${
+                        p.client_role === 'projetista' 
+                          ? 'bg-blue-100 text-blue-700' 
+                          : 'bg-amber-100 text-amber-700'
+                      }`}>
+                        {p.client_role === 'projetista' ? 'Projetista' : 'Financeiro'}
+                      </span>
+                    ) : (
+                      <span className="text-[11px] text-muted-foreground">Completo</span>
+                    )}
+                  </TableCell>
                   <TableCell>
                     <div className="flex flex-wrap gap-1">
                       {p.permissions?.approvals === 'manage' && (
@@ -334,6 +356,20 @@ export function ClientAccessTab({ clientId }: ClientAccessTabProps) {
               </p>
             </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="acc-role">Nível de Acesso</Label>
+              <Select value={clientRole ?? ''} onValueChange={(v) => setClientRole(v === '' ? null : v as ClientRole)}>
+                <SelectTrigger id="acc-role">
+                  <SelectValue placeholder="Selecione o nível de acesso" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Completo (sem restrições)</SelectItem>
+                  <SelectItem value="projetista">Projetista (upload/download de projetos)</SelectItem>
+                  <SelectItem value="financeiro">Financeiro (apenas faturas e contratos)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
             <div className="space-y-3 pt-2 border-t">
               <Label className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-2">
                 <Shield className="w-3 h-3" />
@@ -385,6 +421,20 @@ export function ClientAccessTab({ clientId }: ClientAccessTabProps) {
               />
             </div>
             
+            <div className="space-y-2">
+              <Label htmlFor="edit-role">Nível de Acesso</Label>
+              <Select value={editClientRole ?? ''} onValueChange={(v) => setEditClientRole(v === '' ? null : v as ClientRole)}>
+                <SelectTrigger id="edit-role">
+                  <SelectValue placeholder="Selecione o nível de acesso" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Completo (sem restrições)</SelectItem>
+                  <SelectItem value="projetista">Projetista (upload/download de projetos)</SelectItem>
+                  <SelectItem value="financeiro">Financeiro (apenas faturas e contratos)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
             <div className="space-y-3 pt-2 border-t">
               <Label className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-2">
                 <Shield className="w-3 h-3" />

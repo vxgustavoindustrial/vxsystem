@@ -12,6 +12,7 @@ type RequestBody = {
   fullName: string;
   clientId: string;
   permissions?: Record<string, "view" | "manage">;
+  clientRole?: string | null;
 };
 
 function json(body: Record<string, unknown>, status = 200) {
@@ -65,6 +66,7 @@ serve(async (request) => {
       role: "client",
       client_id: body.clientId,
       permissions: body.permissions || {},
+      client_role: body.clientRole || null,
       is_active: true,
     });
     if (profileError) {
