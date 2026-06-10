@@ -275,17 +275,26 @@ export function AdminProjectOperationsPage({ view }: { view: "uploads" | "proces
     setSaving(true);
     const path = `${selected.client_id}/${selected.id}/result-${crypto.randomUUID()}.${extension}`;
 
+    const { data: uploadUrl, error: signedError } = await supabase.storage
+      .from(PROJECTS_BUCKET)
+      .createSignedUploadUrl(path);
+
+    if (signedError || !uploadUrl?.token) {
+      setSaving(false);
+      return toast.error(`Erro ao iniciar upload: ${signedError?.message || "token nao gerado"}`);
+    }
+
     const { error: uploadError } = await supabase.storage
       .from(PROJECTS_BUCKET)
-      .upload(path, resultFile, {
+      .uploadToSignedUrl(path, uploadUrl.token, resultFile, {
         contentType: resultFile.type || "application/octet-stream",
-        cacheControl: "3600",
         upsert: true,
       });
 
     if (uploadError) {
       setSaving(false);
-      return toast.error(`Erro ao enviar entrega: ${uploadError.message}`);
+      const msg = uploadError.message || "erro desconhecido";
+      return toast.error(`Erro ao enviar entrega (${uploadError.status || "HTTP"}): ${msg}`);
     }
     const result = await supabase.from("vx_project_files").insert({
       project_id: selected.id,
