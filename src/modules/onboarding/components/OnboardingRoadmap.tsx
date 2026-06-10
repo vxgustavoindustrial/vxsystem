@@ -6,7 +6,6 @@ import {
   ChevronRight,
   Rocket,
   Settings2,
-  Share2,
   Megaphone,
   MessageSquare,
   Loader2,
@@ -35,12 +34,6 @@ const MODULE_CONFIG: Record<string, { icon: ElementType; color: string; gradient
     color: 'text-blue-400',
     gradient: 'from-blue-500/20 to-blue-900/10',
     label: 'Onboarding',
-  },
-  approvals: {
-    icon: Share2,
-    color: 'text-purple-400',
-    gradient: 'from-purple-500/20 to-purple-900/10',
-    label: 'Aprovações',
   },
   financial: {
     icon: Megaphone,

@@ -459,6 +459,10 @@ const contractCopy: Record<ContractType, { title: string; description: string }>
 export function ContractManagementPage({ type }: { type: ContractType }) {
   const clients = useClients();
   const { user } = useAuthStore();
+  const profile = useAuthStore((s) => s.profile);
+  const vxRole = profile?.vx_role ?? null;
+  const isVxAdmin = vxRole === 'admin' || vxRole === null;
+  const isVxFinanceiro = vxRole === 'financeiro';
   const [items, setItems] = useState<Contract[]>([]);
   const [form, setForm] = useState({ client_id: "", title: "", status: "draft", starts_on: "", ends_on: "", document_url: "" });
   const copy = contractCopy[type];
@@ -512,8 +516,11 @@ export function ContractManagementPage({ type }: { type: ContractType }) {
           {items.length === 0 ? <Empty message="Nenhum registro nesta categoria." /> : items.map((contract) => (
             <article key={contract.id} className="flex flex-col gap-3 rounded-xl border border-border p-4 md:flex-row md:items-center">
               <div className="flex-1"><p className="font-semibold">{contract.title}</p><p className="text-sm text-muted-foreground">{contract.clients?.name || "Cliente"} {contract.starts_on ? `- Inicio ${new Date(contract.starts_on).toLocaleDateString("pt-BR")}` : ""}</p></div>
-              {contract.document_url && <a className="text-sm text-primary hover:underline" href={contract.document_url} target="_blank" rel="noreferrer">Documento</a>}
-              <NativeSelect className="md:w-36" value={contract.status} onChange={(e) => void updateStatus(contract.id, e.target.value)}>{Object.entries(contractStatusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</NativeSelect>
+              {contract.document_url && !isVxFinanceiro && <a className="text-sm text-primary hover:underline" href={contract.document_url} target="_blank" rel="noreferrer">Documento</a>}
+              {isVxFinanceiro && contract.document_url && <span className="text-xs text-muted-foreground">Anexado</span>}
+              {isVxAdmin && (
+                <NativeSelect className="md:w-36" value={contract.status} onChange={(e) => void updateStatus(contract.id, e.target.value)}>{Object.entries(contractStatusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</NativeSelect>
+              )}
               <StatusPill value={contract.status} labels={contractStatusLabels} />
             </article>
           ))}

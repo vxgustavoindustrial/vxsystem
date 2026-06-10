@@ -79,7 +79,6 @@ const PRIORITY_OPTIONS = [
 const MODULE_OPTIONS = [
   { value: 'general', label: 'Geral',           bg: 'bg-slate-100 dark:bg-slate-800',   text: 'text-slate-700 dark:text-slate-300' },
   { value: 'onboarding', label: 'Onboarding',   bg: 'bg-blue-100 dark:bg-blue-900/30', text: 'text-blue-700 dark:text-blue-400' },
-  { value: 'approvals', label: 'Aprovações',    bg: 'bg-amber-100 dark:bg-amber-900/30', text: 'text-amber-700 dark:text-amber-400' },
   { value: 'financial', label: 'Financeiro',    bg: 'bg-emerald-100 dark:bg-emerald-900/30', text: 'text-emerald-700 dark:text-emerald-400' },
   { value: 'documents', label: 'Documentos',    bg: 'bg-cyan-100 dark:bg-cyan-900/30', text: 'text-cyan-700 dark:text-cyan-400' },
   { value: 'support', label: 'Suporte',         bg: 'bg-violet-100 dark:bg-violet-900/30', text: 'text-violet-700 dark:text-violet-400' },

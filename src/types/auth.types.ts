@@ -3,7 +3,6 @@ import type { Client } from './client.types';
 export type Role = 'admin' | 'client' | 'member';
 
 export interface Permissions {
-  approvals?: 'view' | 'manage';
   financial?: 'view' | 'manage';
   documents?: 'view' | 'manage';
   support?: 'view' | 'manage';
@@ -11,6 +10,8 @@ export interface Permissions {
 }
 
 export type ClientRole = 'projetista' | 'financeiro' | null;
+
+export type VxRole = 'admin' | 'programador' | 'financeiro' | null;
 
 export interface Profile {
   id: string;
@@ -24,6 +25,7 @@ export interface Profile {
   is_active: boolean;
   permissions?: Permissions;
   client_role?: ClientRole;
+  vx_role?: VxRole;
   created_at: string;
   updated_at: string;
 }

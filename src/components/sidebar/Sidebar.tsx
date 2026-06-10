@@ -23,7 +23,7 @@ import {
 
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const { role, isVxAdmin, isVxProgramador, isVxFinanceiro, isProjetista } = useAuth();
-  const { profile, activeClient } = useAuthStore();
+  const { profile } = useAuthStore();
   const { isMobile } = useSidebarStore();
   const navigate = useNavigate();
 
@@ -118,11 +118,6 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         {!isProjetista && <SidebarItem icon={CreditCard} label="Financeiro" href="/client/financial" onNavigate={onNavigate} />}
         {!isProjetista && <SidebarItem icon={FolderOpen} label="Documentos" href="/client/documents" onNavigate={onNavigate} />}
       </SidebarGroup>
-      {(activeClient?.modules_enabled?.approvals) && (
-        <SidebarGroup label="Servicos Contratados">
-          {activeClient.modules_enabled.approvals && <SidebarItem icon={FileText} label="Aprovacoes" href="/client/approvals" onNavigate={onNavigate} />}
-        </SidebarGroup>
-      )}
     </>
   );
 

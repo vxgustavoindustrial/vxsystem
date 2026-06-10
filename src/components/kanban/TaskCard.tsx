@@ -24,7 +24,6 @@ interface TaskCardProps {
 const MODULE_LABELS: Record<string, string> = {
   general: 'Geral',
   onboarding: 'Onboarding',
-  approvals: 'Aprovações',
   financial: 'Financeiro',
   documents: 'Documentos',
   support: 'Suporte',
@@ -33,7 +32,6 @@ const MODULE_LABELS: Record<string, string> = {
 const MODULE_COLORS: Record<string, string> = {
   general: 'text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800/50',
   onboarding: 'text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30',
-  approvals: 'text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/30',
   financial: 'text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/30',
   documents: 'text-cyan-600 dark:text-cyan-400 bg-cyan-100 dark:bg-cyan-900/30',
   support: 'text-violet-600 dark:text-violet-400 bg-violet-100 dark:bg-violet-900/30',

@@ -3,7 +3,7 @@ export interface Task {
   client_id?: string;
   title: string;
   description?: string;
-  module?: 'general' | 'onboarding' | 'approvals' | 'financial' | 'documents' | 'support';
+  module?: 'general' | 'onboarding' | 'financial' | 'documents' | 'support';
   status: 'todo' | 'in_progress' | 'review' | 'done';
   priority: 'low' | 'medium' | 'high' | 'urgent';
   assigned_to?: string;
@@ -77,7 +77,7 @@ export interface Notification {
   id: string;
   user_id: string;
   client_id?: string;
-  type: 'approval' | 'task' | 'report' | 'support' | 'financial';
+  type: 'task' | 'report' | 'support' | 'financial';
   title: string;
   body?: string;
   link?: string;

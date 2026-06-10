@@ -25,7 +25,6 @@ const createClientSchema = z.object({
   email: z.string().email("Email invalido."),
   phone: z.string().optional(),
   assigned_to: z.string().optional(),
-  approvals: z.boolean().optional(),
   financial: z.boolean().optional(),
   documents: z.boolean().optional(),
   support: z.boolean().optional(),
@@ -56,7 +55,6 @@ export function ClientCreateModal({ open, onOpenChange, onSuccess }: ClientCreat
       name: "",
       email: "",
       assigned_to: "",
-      approvals: false,
       financial: false,
       documents: false,
       support: false,
@@ -84,7 +82,6 @@ export function ClientCreateModal({ open, onOpenChange, onSuccess }: ClientCreat
     void fetchAdmins();
   }, [open, reset]);
 
-  const approvals = watch("approvals");
   const financial = watch("financial");
   const documents = watch("documents");
   const support = watch("support");
@@ -103,7 +100,6 @@ export function ClientCreateModal({ open, onOpenChange, onSuccess }: ClientCreat
         status: "onboarding",
         assigned_to: data.assigned_to || null,
         modules_enabled: {
-          approvals: !!data.approvals,
           financial: !!data.financial,
           documents: !!data.documents,
           support: !!data.support,
@@ -178,12 +174,6 @@ export function ClientCreateModal({ open, onOpenChange, onSuccess }: ClientCreat
           <div className="space-y-3 pt-2">
             <Label>Modulos Ativos</Label>
             <div className="grid grid-cols-2 gap-3">
-              <div className="flex items-center space-x-2">
-                <Checkbox id="approvals" checked={approvals} onCheckedChange={(value) => setValue("approvals", value as boolean)} />
-                <label htmlFor="approvals" className="text-sm font-medium leading-none">
-                  Aprovacoes
-                </label>
-              </div>
               <div className="flex items-center space-x-2">
                 <Checkbox id="financial" checked={financial} onCheckedChange={(value) => setValue("financial", value as boolean)} />
                 <label htmlFor="financial" className="text-sm font-medium leading-none">

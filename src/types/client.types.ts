@@ -1,7 +1,6 @@
 export type ClientStatus = 'active' | 'inactive' | 'onboarding';
 
 export interface ModulesEnabled {
-  approvals: boolean;
   financial: boolean;
   documents: boolean;
   support: boolean;

@@ -22,7 +22,6 @@ const editClientSchema = z.object({
   phone: z.string().optional().nullable(),
   status: z.enum(["active", "inactive", "onboarding"]),
   assigned_to: z.string().optional().nullable(),
-  approvals: z.boolean(),
   financial: z.boolean(),
   documents: z.boolean(),
   support: z.boolean(),
@@ -70,7 +69,6 @@ export function ClientEditModal({ client, open, onOpenChange, onSuccess }: Clien
         phone: client.phone || "",
         status: client.status || "onboarding",
         assigned_to: client.assigned_to || "",
-        approvals: !!client.modules_enabled?.approvals,
         financial: !!client.modules_enabled?.financial,
         documents: !!client.modules_enabled?.documents,
         support: !!client.modules_enabled?.support,
@@ -79,7 +77,6 @@ export function ClientEditModal({ client, open, onOpenChange, onSuccess }: Clien
     }
   }, [open, client, reset, fetchAdmins]);
 
-  const approvals = watch("approvals");
   const financial = watch("financial");
   const documents = watch("documents");
   const support = watch("support");
@@ -101,7 +98,6 @@ export function ClientEditModal({ client, open, onOpenChange, onSuccess }: Clien
           status: data.status,
           assigned_to: data.assigned_to || null,
           modules_enabled: {
-            approvals: data.approvals,
             financial: data.financial,
             documents: data.documents,
             support: data.support,
@@ -205,10 +201,6 @@ export function ClientEditModal({ client, open, onOpenChange, onSuccess }: Clien
             <div className="space-y-3 mt-4">
               <Label>Modulos Ativos</Label>
               <div className="grid grid-cols-2 gap-3">
-                <div className="flex items-center space-x-2">
-                  <Checkbox id="approvals" checked={approvals} onCheckedChange={(val) => setValue("approvals", val as boolean)} />
-                  <label htmlFor="approvals" className="text-sm font-medium leading-none">Aprovacoes</label>
-                </div>
                 <div className="flex items-center space-x-2">
                   <Checkbox id="financial" checked={financial} onCheckedChange={(val) => setValue("financial", val as boolean)} />
                   <label htmlFor="financial" className="text-sm font-medium leading-none">Financeiro</label>

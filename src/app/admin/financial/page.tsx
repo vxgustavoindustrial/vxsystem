@@ -28,8 +28,13 @@ import {
   TooltipProvider, 
   TooltipTrigger 
 } from "@/components/ui/tooltip";
+import { useAuthStore } from "@/store/authStore";
 
 export function AdminFinancialPage() {
+  const profile = useAuthStore((s) => s.profile);
+  const vxRole = profile?.vx_role ?? null;
+  const isVxAdmin = vxRole === 'admin' || vxRole === null;
+  const isVxFinanceiro = vxRole === 'financeiro';
   const [data, setData] = useState<(FinancialInvoice & { clients: { name: string } | null })[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -61,7 +66,7 @@ export function AdminFinancialPage() {
       await fetchInvoices();
     };
     loadData();
-  }, [fetchInvoices]);
+  }, [fetchInvoices, isVxAdmin, isVxFinanceiro]);
 
   const filteredData = useMemo(() => {
     if (!search) return data;
@@ -161,6 +166,7 @@ export function AdminFinancialPage() {
       cell: ({ row }) => {
         const url = row.original.file_url;
         if (!url) return "-";
+        if (isVxFinanceiro) return <span className="text-xs text-muted-foreground">Anexado</span>;
         return (
           <Button variant="ghost" size="icon" onClick={async () => {
             try {
@@ -240,24 +246,26 @@ export function AdminFinancialPage() {
 
         return (
           <div className="flex gap-2">
-            {row.original.status !== 'paid' && (
+            {isVxAdmin && row.original.status !== 'paid' && (
               <Button variant="outline" size="sm" onClick={handleMarkAsPaid}>
                 Pago
               </Button>
             )}
-            {row.original.status === 'disputed' && (
+            {isVxAdmin && row.original.status === 'disputed' && (
               <Button variant="secondary" size="sm" onClick={handleResolveDispute}>
                 Resolver
               </Button>
             )}
-            <Button variant="ghost" size="icon" onClick={handleDelete} className="text-destructive hover:text-destructive hover:bg-destructive/10">
-              <Trash2 className="h-4 w-4" />
-            </Button>
+            {isVxAdmin && (
+              <Button variant="ghost" size="icon" onClick={handleDelete} className="text-destructive hover:text-destructive hover:bg-destructive/10">
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
           </div>
         );
       },
     },
-  ], [fetchInvoices]);
+  ], [fetchInvoices, isVxAdmin, isVxFinanceiro]);
 
   return (
     <div className="space-y-6">

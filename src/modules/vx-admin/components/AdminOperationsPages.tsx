@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Cpu, Download, FileUp, Glasses, Loader2, Monitor, PackageCheck, Plus, Users } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/services/supabase";
+import { useAuthStore } from "@/store/authStore";
 import { ClientAccessTab } from "@/components/team/ClientAccessTab";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -122,6 +123,10 @@ async function downloadProjectFile(file: ProjectFile) {
 }
 
 export function AdminProjectOperationsPage({ view }: { view: "uploads" | "processing" | "library" }) {
+  const profile = useAuthStore((s) => s.profile);
+  const vxRole = profile?.vx_role ?? null;
+  const isVxAdmin = vxRole === 'admin' || vxRole === null;
+  const isVxProgramador = vxRole === 'programador';
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedId, setSelectedId] = useState("");
   const [loading, setLoading] = useState(true);
@@ -170,8 +175,10 @@ export function AdminProjectOperationsPage({ view }: { view: "uploads" | "proces
     event.preventDefault();
     if (!selected || !resultFile) return;
     const extension = resultFile.name.split(".").pop()?.toLowerCase() || "";
-    if (!["step", "pdf", "jpg", "jpeg", "png"].includes(extension)) {
-      return toast.error("Use arquivos STEP, PDF, JPEG ou PNG para a entrega.");
+    const allowedExtensions = isVxProgramador ? ["apk"] : ["step", "pdf", "jpg", "jpeg", "png"];
+    const allowedMessage = isVxProgramador ? "Use arquivos APK para a entrega." : "Use arquivos STEP, PDF, JPEG ou PNG para a entrega.";
+    if (!allowedExtensions.includes(extension)) {
+      return toast.error(allowedMessage);
     }
     setSaving(true);
     const path = `${selected.client_id}/${selected.id}/result-${crypto.randomUUID()}.${extension}`;
@@ -222,11 +229,13 @@ export function AdminProjectOperationsPage({ view }: { view: "uploads" | "proces
                     <Info title="Criado em" value={new Date(selected.created_at).toLocaleString("pt-BR")} />
                   </div>
                   <Files files={(selected.vx_project_files || []).filter((file) => !file.is_result)} />
-                  <Button onClick={() => void updateProject({ status: "processing" })} disabled={selected.status !== "analysis" || saving}>Enviar para processamento</Button>
+                  {isVxAdmin && <Button onClick={() => void updateProject({ status: "processing" })} disabled={selected.status !== "analysis" || saving}>Enviar para processamento</Button>}
                 </div>
               )}
               {view === "processing" && (
-                <ProcessingEditor key={`${selected.id}-${selected.updated_at || selected.status}`} selected={selected} saving={saving} onSave={updateProject} />
+                isVxAdmin
+                  ? <ProcessingEditor key={`${selected.id}-${selected.updated_at || selected.status}`} selected={selected} saving={saving} onSave={updateProject} />
+                  : <p className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">Apenas administradores podem alterar o processamento.</p>
               )}
               {view === "library" && (
                 <div className="space-y-6">
@@ -234,7 +243,7 @@ export function AdminProjectOperationsPage({ view }: { view: "uploads" | "proces
                   <form className="space-y-4 rounded-xl border border-border bg-muted/20 p-5" onSubmit={publishResult}>
                     <h3 className="font-semibold">Publicar nova entrega</h3>
                     <p className="text-sm text-muted-foreground">Ao publicar, o projeto passa para finalizado e o cliente recebe acesso ao arquivo na propria biblioteca.</p>
-                    <Input type="file" accept=".step,.pdf,.jpg,.jpeg,.png" onChange={(event) => setResultFile(event.target.files?.[0] || null)} required />
+                    <Input type="file" accept={isVxProgramador ? ".apk" : ".step,.pdf,.jpg,.jpeg,.png,.apk"} onChange={(event) => setResultFile(event.target.files?.[0] || null)} required />
                     <Button disabled={saving || !resultFile}><Plus className="mr-2 h-4 w-4" />{saving ? "Publicando..." : "Publicar entrega final"}</Button>
                   </form>
                 </div>

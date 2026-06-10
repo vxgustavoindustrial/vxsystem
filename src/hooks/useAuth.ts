@@ -20,6 +20,11 @@ export function useAuth() {
     }
   };
 
+  const vxRole = profile?.vx_role ?? null;
+  const isVxAdmin = vxRole === 'admin' || vxRole === null; // null = legacy admin
+  const isVxProgramador = vxRole === 'programador';
+  const isVxFinanceiro = vxRole === 'financeiro';
+
   return {
     user,
     profile,
@@ -30,6 +35,10 @@ export function useAuth() {
     clientRole: profile?.client_role ?? null,
     isProjetista: profile?.client_role === 'projetista',
     isFinanceiro: profile?.client_role === 'financeiro',
+    vxRole,
+    isVxAdmin,
+    isVxProgramador,
+    isVxFinanceiro,
     signOut
   };
 }

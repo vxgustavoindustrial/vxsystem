@@ -4,7 +4,7 @@ import { NotificationService } from './notification.service';
 export interface OnboardingTemplate {
   title: string;
   description?: string;
-  module: 'general' | 'onboarding' | 'approvals' | 'financial' | 'documents' | 'support';
+  module: 'general' | 'onboarding' | 'financial' | 'documents' | 'support';
   subtasks?: { title: string; description?: string }[];
 }
 
@@ -287,7 +287,7 @@ export const AutomationService = {
           client_id: clientId,
           title: `[Ajuste] - ${creativeData.title}`,
           description: `Feedback do cliente: ${creativeData.feedback}`,
-          module: 'approvals',
+          module: 'general',
           status: 'todo',
           priority: 'high',
           created_by: userId,

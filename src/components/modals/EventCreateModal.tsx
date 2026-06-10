@@ -25,7 +25,7 @@ const createEventSchema = z.object({
   platform: z.string().optional(),
   client_id: z.string().min(1, "Selecione o cliente"),
   color: z.string().optional(),
-  module: z.enum(['general', 'onboarding', 'approvals', 'financial', 'documents', 'support']).optional(),
+  module: z.enum(['general', 'onboarding', 'financial', 'documents', 'support']).optional(),
   description: z.string().optional(),
 });
 
@@ -99,7 +99,7 @@ export function EventCreateModal({
             platform: initialEvent.platform || '',
             color: initialEvent.color || '#3b82f6',
             client_id: initialEvent.client_id,
-            module: (initialEvent.module as 'general' | 'onboarding' | 'approvals' | 'financial' | 'documents' | 'support') || 'general',
+            module: (initialEvent.module as 'general' | 'onboarding' | 'financial' | 'documents' | 'support') || 'general',
             description: initialEvent.description || '',
           });
       } else {
@@ -258,13 +258,12 @@ export function EventCreateModal({
               <Label>Módulo da Tarefa</Label>
               <Select 
                 value={watch("module") || "general"} 
-                onValueChange={(val: "general" | "onboarding" | "approvals" | "financial" | "documents" | "support") => setValue("module", val)}
+                onValueChange={(val: "general" | "onboarding" | "financial" | "documents" | "support") => setValue("module", val)}
               >
                 <SelectTrigger><SelectValue placeholder="Selecione o módulo..." /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="general">Geral</SelectItem>
                   <SelectItem value="onboarding">Onboarding / Implantação</SelectItem>
-                  <SelectItem value="approvals">Aprovações</SelectItem>
                   <SelectItem value="financial">Financeiro</SelectItem>
                   <SelectItem value="documents">Documentos</SelectItem>
                   <SelectItem value="support">Suporte</SelectItem>

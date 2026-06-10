@@ -234,15 +234,13 @@ export function AdminClientDetailPage() {
                       key={key}
                       className="rounded-md border border-primary/20 bg-primary/10 px-2 py-1 text-xs font-medium capitalize text-primary"
                     >
-                      {key === "approvals"
-                        ? "Aprovacoes"
-                        : key === "financial"
-                          ? "Financeiro"
-                          : key === "documents"
-                            ? "Documentos"
-                            : key === "support"
-                              ? "Suporte"
-                              : key}
+                      {key === "financial"
+                        ? "Financeiro"
+                        : key === "documents"
+                          ? "Documentos"
+                          : key === "support"
+                            ? "Suporte"
+                            : key}
                     </span>
                   ))
                 ) : (

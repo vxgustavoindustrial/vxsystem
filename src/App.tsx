@@ -35,10 +35,10 @@ const AdminUploadsPage = lazy(() => import('./modules/vx-admin/components/AdminO
 const AdminProcessingPage = lazy(() => import('./modules/vx-admin/components/AdminOperationsPages').then((mod) => ({ default: mod.AdminProcessingPage })));
 const AdminLibraryPage = lazy(() => import('./modules/vx-admin/components/AdminOperationsPages').then((mod) => ({ default: mod.AdminLibraryPage })));
 const AdminInstallationPage = lazy(() => import('./modules/vx-admin/components/AdminOperationsPages').then((mod) => ({ default: mod.AdminInstallationPage })));
+const VxAccessManagementPage = lazy(() => import('./app/admin/access-vx/page').then((mod) => ({ default: mod.VxAccessManagementPage })));
 
 const ClientDashboard = lazy(() => import('./app/client/page').then((mod) => ({ default: mod.ClientDashboard })));
 const ClientOnboardingPage = lazy(() => import('./app/client/onboarding/page').then((mod) => ({ default: mod.ClientOnboardingPage })));
-const ClientApprovalsPage = lazy(() => import('./app/client/approvals/page').then((mod) => ({ default: mod.ClientApprovalsPage })));
 const ClientSupportPage = lazy(() => import('./app/client/support/page').then((mod) => ({ default: mod.ClientSupportPage })));
 const ClientTicketDetailPage = lazy(() => import('./app/client/support/[ticketId]/page').then((mod) => ({ default: mod.ClientTicketDetailPage })));
 const ClientFinancialPage = lazy(() => import('./app/client/financial/page').then((mod) => ({ default: mod.ClientFinancialPage })));
@@ -232,6 +232,7 @@ export default function App() {
               <Route path="/admin/tasks" element={<AdminTasksPage />} />
               <Route path="/admin/team" element={<AdminTeamPage />} />
               <Route path="/admin/calendar" element={<AdminCalendarPage />} />
+              <Route path="/admin/access-vx" element={<VxAccessManagementPage />} />
             </Route>
           </Route>
           
@@ -245,7 +246,6 @@ export default function App() {
               <Route path="/client/installation" element={<ClientInstallationPage />} />
               <Route path="/client/onboarding" element={<ClientOnboardingPage />} />
               {/* Calendário do cliente eliminado - vive dentro de Social Media */}
-              <Route path="/client/approvals" element={<ClientApprovalsPage />} />
               <Route path="/client/support" element={<ClientSupportPage />} />
               <Route path="/client/support/:ticketId" element={<ClientTicketDetailPage />} />
               <Route path="/client/documents" element={<ClientDocumentsPage />} />

@@ -31,7 +31,7 @@ export interface FlowStep {
   action?: 'generate_task_group';
   title: string;
   description?: string;
-  module?: 'general' | 'onboarding' | 'approvals' | 'financial' | 'documents' | 'support';
+  module?: 'general' | 'onboarding' | 'financial' | 'documents' | 'support';
   priority?: 'low' | 'medium' | 'high' | 'urgent';
   stage?: string;
   subtasks?: FlowSubtaskDef[];
@@ -58,7 +58,6 @@ interface FlowBuilderModalProps {
 const MODULE_OPTIONS = [
   { value: 'general', label: 'Geral / CRM' },
   { value: 'onboarding', label: 'Onboarding' },
-  { value: 'approvals', label: 'Aprovações' },
   { value: 'financial', label: 'Financeiro' },
   { value: 'documents', label: 'Documentos' },
   { value: 'support', label: 'Suporte' },

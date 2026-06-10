@@ -21,7 +21,6 @@ import {
   DialogDescription
 } from "@/components/ui/dialog";
 import { Loader2, Key, UserPlus, Copy, Trash2, Shield, Edit2 } from "lucide-react";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { Permissions, ClientRole } from "@/types/auth.types";
 
@@ -50,7 +49,6 @@ export function ClientAccessTab({ clientId }: ClientAccessTabProps) {
   const [password, setPassword] = useState("");
   const [clientRole, setClientRole] = useState<ClientRole>(null);
   const [permissions, setPermissions] = useState<Permissions>({
-    approvals: 'view',
     financial: 'view',
     documents: 'view',
     support: 'view',
@@ -129,7 +127,6 @@ export function ClientAccessTab({ clientId }: ClientAccessTabProps) {
     setPassword("");
     setClientRole(null);
     setPermissions({
-      approvals: 'view',
       financial: 'view',
       documents: 'view',
       support: 'view',
@@ -142,7 +139,6 @@ export function ClientAccessTab({ clientId }: ClientAccessTabProps) {
     setEditFullName(profile.full_name || "");
     setEditClientRole(profile.client_role ?? null);
     setEditPermissions(profile.permissions || {
-      approvals: 'view',
       financial: 'view',
       documents: 'view',
       support: 'view',
@@ -177,15 +173,6 @@ export function ClientAccessTab({ clientId }: ClientAccessTabProps) {
     } finally {
       setSubmitting(false);
     }
-  };
-
-  const togglePermission = (
-    currentPermissions: Permissions, 
-    setFn: React.Dispatch<React.SetStateAction<Permissions>>, 
-    module: keyof Permissions
-  ) => {
-    const newVal = currentPermissions[module] === 'manage' ? 'view' : 'manage';
-    setFn({ ...currentPermissions, [module]: newVal });
   };
 
   const copyToClipboard = (text: string) => {
@@ -267,12 +254,6 @@ export function ClientAccessTab({ clientId }: ClientAccessTabProps) {
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-wrap gap-1">
-                      {p.permissions?.approvals === 'manage' && (
-                        <span className="text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded font-medium">Aprovar</span>
-                      )}
-                      {p.permissions?.approvals === 'view' && (
-                        <span className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-medium">Ver Aprovações</span>
-                      )}
                     </div>
                   </TableCell>
                   <TableCell className="text-right">
@@ -377,14 +358,6 @@ export function ClientAccessTab({ clientId }: ClientAccessTabProps) {
               </Label>
               
               <div className="grid grid-cols-2 gap-3">
-                <div className="flex items-center space-x-2">
-                  <Checkbox 
-                    id="p-approvals" 
-                    checked={permissions.approvals === 'manage'} 
-                    onCheckedChange={() => togglePermission(permissions, setPermissions, 'approvals')}
-                  />
-                  <Label htmlFor="p-approvals" className="text-sm font-normal cursor-pointer">Aprovações (Pode Aprovar)</Label>
-                </div>
                 {/* Outras permissões podem ser adicionadas aqui conforme necessário */}
               </div>
             </div>
@@ -442,14 +415,6 @@ export function ClientAccessTab({ clientId }: ClientAccessTabProps) {
               </Label>
               
               <div className="grid grid-cols-2 gap-3">
-                <div className="flex items-center space-x-2">
-                  <Checkbox 
-                    id="edit-p-approvals" 
-                    checked={editPermissions.approvals === 'manage'} 
-                    onCheckedChange={() => togglePermission(editPermissions, setEditPermissions, 'approvals')}
-                  />
-                  <Label htmlFor="edit-p-approvals" className="text-sm font-normal cursor-pointer">Aprovações (Pode Aprovar)</Label>
-                </div>
               </div>
             </div>
 

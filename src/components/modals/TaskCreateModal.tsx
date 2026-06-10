@@ -21,7 +21,7 @@ const createTaskSchema = z.object({
   title: z.string().min(2, "Título obrigatório"),
   description: z.string().optional(),
   client_id: z.string().min(1, "Selecione o cliente"),
-  module: z.enum(['general', 'onboarding', 'approvals', 'financial', 'documents', 'support']),
+  module: z.enum(['general', 'onboarding', 'financial', 'documents', 'support']),
   status: z.enum(['todo', 'in_progress', 'review', 'done']).optional(),
   priority: z.enum(['low', 'medium', 'high', 'urgent']).optional(),
   due_date: z.string().optional(),
@@ -35,7 +35,7 @@ interface TaskCreateModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess: () => void;
-  defaultModule?: 'general' | 'onboarding' | 'approvals' | 'financial' | 'documents' | 'support';
+  defaultModule?: 'general' | 'onboarding' | 'financial' | 'documents' | 'support';
 }
 
 export function TaskCreateModal({
@@ -160,7 +160,6 @@ export function TaskCreateModal({
                 <SelectContent>
                   <SelectItem value="general">Geral</SelectItem>
                   <SelectItem value="onboarding">Onboarding / Implantação</SelectItem>
-                  <SelectItem value="approvals">Aprovações</SelectItem>
                   <SelectItem value="financial">Financeiro</SelectItem>
                   <SelectItem value="documents">Documentos</SelectItem>
                   <SelectItem value="support">Suporte</SelectItem>

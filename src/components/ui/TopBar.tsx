@@ -88,7 +88,6 @@ export function TopBar() {
     team: "Equipe",
   reports: "RelatÃ³rios",
   onboarding: "Onboarding",
-  approvals: "AprovaÃ§Ãµes",
   support: "Suporte",
   financial: "Financeiro",
   documents: "Documentos",

@@ -134,7 +134,6 @@ export function ClientListPage() {
           if (!mods) return "-";
 
           const parts: string[] = [];
-          if (mods.approvals) parts.push("Aprovacoes");
           if (mods.financial) parts.push("Financeiro");
           if (mods.documents) parts.push("Documentos");
           if (mods.support) parts.push("Suporte");
