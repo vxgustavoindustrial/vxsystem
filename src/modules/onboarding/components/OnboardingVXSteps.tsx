@@ -21,6 +21,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { useAuth } from '@/hooks/useAuth';
 
 interface OnboardingVXStepsProps {
   clientId: string;
@@ -83,6 +84,7 @@ async function createProjectDownloadUrl(fileUrlOrPath: string) {
 }
 
 export function OnboardingVXSteps({ clientId, initialStep = 1 }: OnboardingVXStepsProps) {
+  const { isFinanceiro } = useAuth();
   const [activeStep, setActiveStep] = useState<number>(initialStep);
   const [projects, setProjects] = useState<VXProject[]>([]);
   const [selectedProject, setSelectedProject] = useState<VXProject | null>(null);
@@ -179,12 +181,24 @@ export function OnboardingVXSteps({ clientId, initialStep = 1 }: OnboardingVXSte
     for (let i = 0; i < filesList.length; i++) {
       const file = filesList[i];
       const extension = file.name.split('.').pop()?.toLowerCase() || '';
+      const sizeMB = file.size / (1024 * 1024);
 
-      if (allowedExtensions.includes(extension)) {
-        addedFiles.push(file);
-      } else {
+      if (!allowedExtensions.includes(extension)) {
         toast.warning(`Arquivo rejeitado: "${file.name}". Apenas .step, .pdf e imagens são permitidos.`);
+        continue;
       }
+
+      // Validação de tamanho: 10MB para imagens, 100MB para PDF, 200MB para STEP
+      const isImage = ['jpg', 'jpeg', 'png'].includes(extension);
+      const isPdf = extension === 'pdf';
+      const maxSizeMB = isImage ? 10 : isPdf ? 100 : 200;
+
+      if (file.size > maxSizeMB * 1024 * 1024) {
+        toast.warning(`Arquivo rejeitado: "${file.name}" (${sizeMB.toFixed(1)}MB). Limite: ${maxSizeMB}MB para ${isImage ? 'imagens' : isPdf ? 'PDFs' : 'arquivos STEP'}.`);
+        continue;
+      }
+
+      addedFiles.push(file);
     }
 
     if (addedFiles.length > 0) {
@@ -445,6 +459,17 @@ export function OnboardingVXSteps({ clientId, initialStep = 1 }: OnboardingVXSte
         {/* ETAPA 2: ENVIO DE ARQUIVOS */}
         {activeStep === 2 && (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {isFinanceiro ? (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-900/30 p-6 text-center">
+                <AlertTriangle className="h-10 w-10 mx-auto text-amber-500 mb-3" />
+                <h3 className="font-bold text-lg mb-1">Acesso Restrito</h3>
+                <p className="text-sm text-muted-foreground">
+                  Seu perfil financeiro não tem permissão para realizar upload de arquivos de projeto.
+                  Entre em contato com o projetista responsável.
+                </p>
+              </div>
+            ) : (
+            <>
             <div>
               <h2 className="text-2xl font-bold tracking-tight">Envio de Arquivos & Detalhes do Projeto</h2>
               <p className="text-xs text-muted-foreground mt-1">
@@ -601,6 +626,8 @@ export function OnboardingVXSteps({ clientId, initialStep = 1 }: OnboardingVXSte
                 </button>
               </div>
             </form>
+          </>
+          )}
           </div>
         )}
 

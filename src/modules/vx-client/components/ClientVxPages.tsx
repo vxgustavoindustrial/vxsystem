@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, BadgeCheck, CreditCard, FileSignature, Monitor, ShieldCheck, AlertTriangle } from "lucide-react";
+import { ArrowRight, BadgeCheck, CreditCard, FileSignature, Monitor, ShieldCheck, AlertTriangle, UploadCloud } from "lucide-react";
 import { supabase } from "@/services/supabase";
 import { useAuth } from "@/hooks/useAuth";
 import { OnboardingVXSteps } from "@/modules/onboarding/components/OnboardingVXSteps";
@@ -30,7 +30,7 @@ type Subscription = {
 const contractNames = { service: "Prestacao de servico", nda: "Confidencialidade", platform: "Plataforma VX" };
 
 export function ClientAccessPage() {
-  const { clientId, profile, isLoading: isAuthLoading } = useAuth();
+  const { clientId, profile, clientRole, isLoading: isAuthLoading } = useAuth();
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [loading, setLoading] = useState(true);
@@ -81,7 +81,7 @@ export function ClientAccessPage() {
           <Card><CardHeader><CardTitle className="flex items-center gap-2 text-lg"><CreditCard className="h-5 w-5 text-primary" /> Plano contratado</CardTitle></CardHeader><CardContent className="space-y-3 text-sm">
             {subscription ? <><p className="text-xl font-bold">{subscription.plan_name}</p><p className="text-muted-foreground">{Number(subscription.monthly_amount).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}/mes</p><p>SAC: {subscription.support_level} - {subscription.platform_seats} licenca(s)</p></> : <p className="text-muted-foreground">Plano ainda nao disponibilizado.</p>}
           </CardContent></Card>
-          <Card><CardHeader><CardTitle className="flex items-center gap-2 text-lg"><ShieldCheck className="h-5 w-5 text-primary" /> Protecao</CardTitle></CardHeader><CardContent className="space-y-3 text-sm"><p>Seus arquivos ficam restritos ao seu projeto.</p><p className="text-muted-foreground">Downloads finais sao liberados somente apos a conclusao tecnica.</p><Button asChild className="mt-2 w-full"><Link to="/client/upload">Enviar projeto <ArrowRight className="ml-2 h-4 w-4" /></Link></Button></CardContent></Card>
+          <Card><CardHeader><CardTitle className="flex items-center gap-2 text-lg"><ShieldCheck className="h-5 w-5 text-primary" /> Protecao</CardTitle></CardHeader><CardContent className="space-y-3 text-sm"><p>Seus arquivos ficam restritos ao seu projeto.</p><p className="text-muted-foreground">Downloads finais sao liberados somente apos a conclusao tecnica.</p>{clientRole !== 'financeiro' && <Button asChild className="mt-2 w-full"><Link to="/client/upload"><UploadCloud className="mr-2 h-4 w-4" /> Enviar projeto <ArrowRight className="ml-2 h-4 w-4" /></Link></Button>}</CardContent></Card>
         </div>
       )}
       <Card>

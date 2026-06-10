@@ -27,6 +27,9 @@ export function useAuth() {
     clientId: activeClientId,
     impersonatedClientId,
     isLoading,
+    clientRole: profile?.client_role ?? null,
+    isProjetista: profile?.client_role === 'projetista',
+    isFinanceiro: profile?.client_role === 'financeiro',
     signOut
   };
 }

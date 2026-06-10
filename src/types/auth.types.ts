@@ -10,6 +10,8 @@ export interface Permissions {
   onboarding?: 'view' | 'manage';
 }
 
+export type ClientRole = 'projetista' | 'financeiro' | null;
+
 export interface Profile {
   id: string;
   full_name: string;
@@ -21,6 +23,7 @@ export interface Profile {
   phone?: string;
   is_active: boolean;
   permissions?: Permissions;
+  client_role?: ClientRole;
   created_at: string;
   updated_at: string;
 }
