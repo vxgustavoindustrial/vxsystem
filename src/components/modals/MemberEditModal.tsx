@@ -74,7 +74,7 @@ export function MemberEditModal({ member, open, onOpenChange, onSuccess }: Membe
           </div>
           <div className="grid w-full items-center gap-1.5">
             <Label>Nível de Acesso VX</Label>
-            <Select value={vxRole} onValueChange={setVxRole}>
+            <Select key={`edit-vxrole-${open}`} value={vxRole} onValueChange={setVxRole}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="null">Sem acesso VX</SelectItem>

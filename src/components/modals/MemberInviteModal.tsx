@@ -112,7 +112,7 @@ export function MemberInviteModal({ open, onOpenChange, onSuccess }: MemberInvit
 
           <div className="grid w-full items-center gap-1.5">
             <Label>Cargo</Label>
-            <Select value={role} onValueChange={setRole}>
+            <Select key={`invite-role-${open}`} value={role} onValueChange={setRole}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="member">Membro / Equipe</SelectItem>
@@ -123,7 +123,7 @@ export function MemberInviteModal({ open, onOpenChange, onSuccess }: MemberInvit
 
           <div className="grid w-full items-center gap-1.5">
             <Label>Nivel de Acesso VX</Label>
-            <Select value={vxRole} onValueChange={setVxRole}>
+            <Select key={`invite-vxrole-${open}`} value={vxRole} onValueChange={setVxRole}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="null">Sem acesso VX</SelectItem>

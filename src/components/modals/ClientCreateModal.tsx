@@ -161,7 +161,7 @@ export function ClientCreateModal({ open, onOpenChange, onSuccess }: ClientCreat
 
           <div className="grid w-full items-center gap-1.5">
             <Label htmlFor="assigned_to">Responsavel (Admin)</Label>
-            <Select value={assigned_to} onValueChange={(value) => setValue("assigned_to", value)}>
+            <Select key={`assigned-to-${open}`} value={assigned_to} onValueChange={(value) => setValue("assigned_to", value)}>
               <SelectTrigger>
                 <SelectValue placeholder="Selecione um membro..." />
               </SelectTrigger>
