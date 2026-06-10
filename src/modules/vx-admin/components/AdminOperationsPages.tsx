@@ -277,24 +277,28 @@ export function AdminProjectOperationsPage({ view }: { view: "uploads" | "proces
 
     const { data: uploadUrl, error: signedError } = await supabase.storage
       .from(PROJECTS_BUCKET)
-      .createSignedUploadUrl(path);
+      .createSignedUploadUrl(path, { upsert: true });
 
-    if (signedError || !uploadUrl?.token) {
+    if (signedError || !uploadUrl?.signedUrl) {
       setSaving(false);
-      return toast.error(`Erro ao iniciar upload: ${signedError?.message || "token nao gerado"}`);
+      return toast.error(`Erro ao iniciar upload: ${signedError?.message || "URL nao gerada"}`);
     }
 
-    const { error: uploadError } = await supabase.storage
-      .from(PROJECTS_BUCKET)
-      .uploadToSignedUrl(path, uploadUrl.token, resultFile, {
-        contentType: resultFile.type || "application/octet-stream",
-        upsert: true,
-      });
+    // Upload directly via PUT to the signed URL (bypasses Supabase SDK FormData)
+    const uploadRes = await fetch(uploadUrl.signedUrl, {
+      method: "PUT",
+      body: resultFile.stream(),
+      duplex: "half",
+      headers: {
+        "Content-Type": resultFile.type || "application/octet-stream",
+        "x-upsert": "true",
+      },
+    });
 
-    if (uploadError) {
+    if (!uploadRes.ok) {
+      const errText = await uploadRes.text().catch(() => "");
       setSaving(false);
-      const msg = uploadError.message || "erro desconhecido";
-      return toast.error(`Erro ao enviar entrega (${uploadError.status || "HTTP"}): ${msg}`);
+      return toast.error(`Erro ao enviar entrega (HTTP ${uploadRes.status}): ${errText || uploadRes.statusText}`);
     }
     const result = await supabase.from("vx_project_files").insert({
       project_id: selected.id,
