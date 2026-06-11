@@ -224,6 +224,7 @@ export function AdminProjectOperationsPage({ view }: { view: "uploads" | "proces
   const vxRole = profile?.vx_role ?? null;
   const isVxAdmin = vxRole === 'admin' || vxRole === null;
   const isVxProgramador = vxRole === 'programador';
+  const canPublishApk = isVxAdmin || isVxProgramador;
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedId, setSelectedId] = useState("");
   const [loading, setLoading] = useState(true);
@@ -317,8 +318,8 @@ export function AdminProjectOperationsPage({ view }: { view: "uploads" | "proces
     if (!selected || !resultFile) return;
     const sourceName = resultFile.name;
     const extension = sourceName.split(".").pop()?.toLowerCase() || "";
-    const allowedExtensions = isVxProgramador ? ["apk"] : ["step", "pdf", "jpg", "jpeg", "png"];
-    const allowedMessage = isVxProgramador ? "Use arquivos APK para a entrega." : "Use arquivos STEP, PDF, JPEG ou PNG para a entrega.";
+    const allowedExtensions = canPublishApk ? ["apk"] : ["step", "pdf", "jpg", "jpeg", "png"];
+    const allowedMessage = canPublishApk ? "Use arquivos APK para a entrega." : "Use arquivos STEP, PDF, JPEG ou PNG para a entrega.";
     if (!allowedExtensions.includes(extension)) {
       return toast.error(allowedMessage);
     }
@@ -440,7 +441,7 @@ export function AdminProjectOperationsPage({ view }: { view: "uploads" | "proces
                   <form className="space-y-4 rounded-xl border border-border bg-muted/20 p-5" onSubmit={publishResult}>
                     <h3 className="font-semibold">Publicar nova entrega</h3>
                     <p className="text-sm text-muted-foreground">Ao publicar, o projeto passa para finalizado e o cliente recebe acesso ao arquivo na propria biblioteca.</p>
-                    <Input type="file" accept={isVxProgramador ? ".apk" : ".step,.pdf,.jpg,.jpeg,.png,.apk"} onChange={(event) => setResultFile(event.target.files?.[0] || null)} />
+                    <Input type="file" accept={canPublishApk ? ".apk" : ".step,.pdf,.jpg,.jpeg,.png"} onChange={(event) => setResultFile(event.target.files?.[0] || null)} />
                     <p className="text-xs text-muted-foreground">O arquivo sera enviado direto para o Cloudflare R2. O Supabase guarda apenas a referencia para exibir o botao de download.</p>
                     <Button disabled={saving || !resultFile}><Plus className="mr-2 h-4 w-4" />{saving ? "Publicando..." : "Publicar entrega final"}</Button>
                   </form>
