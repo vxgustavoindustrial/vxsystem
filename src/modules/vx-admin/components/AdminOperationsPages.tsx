@@ -47,7 +47,6 @@ type Software = {
 };
 
 const PROJECTS_BUCKET = "vx-projects";
-const DIRECT_UPLOAD_LIMIT_BYTES = 50 * 1024 * 1024;
 const statusLabels = { analysis: "Em analise", processing: "Em processamento", completed: "Finalizado" };
 
 function isExternalProjectUrl(fileUrlOrPath: string) {
@@ -285,46 +284,64 @@ export function AdminProjectOperationsPage({ view }: { view: "uploads" | "proces
     if (!allowedExtensions.includes(extension)) {
       return toast.error(allowedMessage);
     }
-    if (resultFile && resultFile.size > DIRECT_UPLOAD_LIMIT_BYTES) {
-      return toast.error("Este projeto Supabase aceita upload direto de ate 50MB. Para APKs maiores, use a URL externa abaixo do campo de arquivo.");
-    }
     setSaving(true);
-    let path = externalUrl;
-    if (!externalUrl) {
-      const storagePath = `${selected.client_id}/${selected.id}/result-${crypto.randomUUID()}.${extension}`;
-      const { data: uploadUrl, error: signedError } = await supabase.storage
-        .from(PROJECTS_BUCKET)
-        .createSignedUploadUrl(storagePath, { upsert: true });
 
-      if (signedError || !uploadUrl?.signedUrl) {
+    let path = externalUrl;
+    let fileName = sourceName;
+    let fileSize = null;
+
+    if (resultFile) {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
+      if (!accessToken) {
         setSaving(false);
-        return toast.error(`Erro ao iniciar upload: ${signedError?.message || "URL nao gerada"}`);
+        return toast.error("Sessao expirada. Faca login novamente.");
       }
 
-      const uploadRes = await fetch(uploadUrl.signedUrl, {
-        method: "PUT",
-        body: resultFile!.stream(),
-        duplex: "half",
+      const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/create-r2-upload-url`, {
+        method: "POST",
         headers: {
-          "Content-Type": resultFile!.type || "application/octet-stream",
-          "x-upsert": "true",
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${accessToken}`,
         },
+        body: JSON.stringify({
+          clientId: selected.client_id,
+          projectId: selected.id,
+          fileName: resultFile.name,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => null);
+        setSaving(false);
+        return toast.error(err?.error || "Erro ao preparar upload no Cloudflare R2.");
+      }
+
+      const { uploadUrl, publicUrl } = await res.json();
+
+      const uploadRes = await fetch(uploadUrl, {
+        method: "PUT",
+        body: resultFile,
       });
 
       if (!uploadRes.ok) {
-        const errText = await uploadRes.text().catch(() => "");
         setSaving(false);
-        return toast.error(`Erro ao enviar entrega (HTTP ${uploadRes.status}): ${errText || uploadRes.statusText}`);
+        return toast.error("Erro ao enviar arquivo para o Cloudflare R2.");
       }
 
-      path = storagePath;
+      path = publicUrl;
+      fileSize = resultFile.size;
+    } else {
+      fileName = `Entrega externa (${extension.toUpperCase()})`;
     }
+
     const result = await supabase.from("vx_project_files").insert({
       project_id: selected.id,
       file_url: path,
-      file_name: resultFile?.name || `Entrega externa (${extension.toUpperCase()})`,
+      file_name: fileName,
       file_type: fileKind(sourceName),
-      file_size: resultFile?.size || null,
+      file_size: fileSize,
       is_result: true,
     });
     if (!result.error) await supabase.from("vx_projects").update({ status: "completed" }).eq("id", selected.id);
@@ -400,7 +417,7 @@ export function AdminProjectOperationsPage({ view }: { view: "uploads" | "proces
                     <div className="space-y-2">
                       <Label>Ou informe uma URL externa</Label>
                       <Input type="url" placeholder={isVxProgramador ? "https://.../arquivo.apk" : "https://.../arquivo-final"} value={resultExternalUrl} onChange={(event) => setResultExternalUrl(event.target.value)} />
-                      <p className="text-xs text-muted-foreground">Use esta opcao para arquivos grandes. O projeto atual do Supabase aceita upload direto apenas ate 50MB.</p>
+                      <p className="text-xs text-muted-foreground">Use a URL externa se o arquivo estiver hospedado em outro servico (Google Drive, Dropbox, etc.). Uploads feitos aqui vao direto para o Cloudflare R2, sem limite de tamanho.</p>
                     </div>
                     <Button disabled={saving || (!resultFile && !resultExternalUrl.trim())}><Plus className="mr-2 h-4 w-4" />{saving ? "Publicando..." : "Publicar entrega final"}</Button>
                   </form>
