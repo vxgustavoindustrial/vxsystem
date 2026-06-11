@@ -65,6 +65,58 @@ interface VXSoftware {
 
 const PROJECTS_BUCKET = 'vx-projects';
 const PUBLIC_PROJECTS_PATH = `/storage/v1/object/public/${PROJECTS_BUCKET}/`;
+const R2_FILE_PREFIX = 'r2://';
+
+function isR2ProjectUrl(fileUrlOrPath: string) {
+  return fileUrlOrPath.startsWith(R2_FILE_PREFIX);
+}
+
+async function createR2UploadUrl(clientId: string, projectId: string, fileName: string) {
+  const { data: sessionData } = await supabase.auth.getSession();
+  const accessToken = sessionData?.session?.access_token;
+  if (!accessToken) throw new Error('Sessao expirada. Faca login novamente.');
+
+  const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+  const res = await fetch(`${SUPABASE_URL}/functions/v1/create-r2-upload-url`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({ clientId, projectId, fileName, isResult: false }),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => null);
+    throw new Error(err?.error || 'Erro ao preparar upload no Cloudflare R2.');
+  }
+
+  return await res.json() as { uploadUrl: string; fileUrl: string };
+}
+
+async function createR2DownloadUrl(fileUrl: string) {
+  const { data: sessionData } = await supabase.auth.getSession();
+  const accessToken = sessionData?.session?.access_token;
+  if (!accessToken) throw new Error('Sessao expirada. Faca login novamente.');
+
+  const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+  const res = await fetch(`${SUPABASE_URL}/functions/v1/create-r2-download-url`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({ fileUrl }),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => null);
+    throw new Error(err?.error || 'Nao foi possivel liberar o download no Cloudflare R2.');
+  }
+
+  const data = await res.json();
+  return data.downloadUrl as string;
+}
 
 function getProjectStoragePath(fileUrlOrPath: string) {
   const markerIndex = fileUrlOrPath.indexOf(PUBLIC_PROJECTS_PATH);
@@ -78,6 +130,7 @@ function isExternalProjectUrl(fileUrlOrPath: string) {
 }
 
 async function createProjectDownloadUrl(fileUrlOrPath: string) {
+  if (isR2ProjectUrl(fileUrlOrPath)) return await createR2DownloadUrl(fileUrlOrPath);
   if (isExternalProjectUrl(fileUrlOrPath)) return fileUrlOrPath;
   const storagePath = getProjectStoragePath(fileUrlOrPath);
   const { data, error } = await supabase.storage
@@ -189,20 +242,9 @@ export function OnboardingVXSteps({ clientId, initialStep = 1 }: OnboardingVXSte
     for (let i = 0; i < filesList.length; i++) {
       const file = filesList[i];
       const extension = file.name.split('.').pop()?.toLowerCase() || '';
-      const sizeMB = file.size / (1024 * 1024);
 
       if (!allowedExtensions.includes(extension)) {
         toast.warning(`Arquivo rejeitado: "${file.name}". Apenas .step, .pdf e imagens são permitidos.`);
-        continue;
-      }
-
-      // Validação de tamanho: 10MB para imagens, 100MB para PDF, 200MB para STEP
-      const isImage = ['jpg', 'jpeg', 'png'].includes(extension);
-      const isPdf = extension === 'pdf';
-      const maxSizeMB = isImage ? 10 : isPdf ? 100 : 200;
-
-      if (file.size > maxSizeMB * 1024 * 1024) {
-        toast.warning(`Arquivo rejeitado: "${file.name}" (${sizeMB.toFixed(1)}MB). Limite: ${maxSizeMB}MB para ${isImage ? 'imagens' : isPdf ? 'PDFs' : 'arquivos STEP'}.`);
         continue;
       }
 
@@ -271,15 +313,16 @@ export function OnboardingVXSteps({ clientId, initialStep = 1 }: OnboardingVXSte
       // 2. Fazer upload dos arquivos e criar registros
       for (const file of selectedFiles) {
         const ext = file.name.split('.').pop()?.toLowerCase();
-        const randId = crypto.randomUUID();
-        const storagePath = `${clientId}/${project.id}/${randId}.${ext}`;
 
-        // Upload para Storage
-        const { error: uploadError } = await supabase.storage
-          .from(PROJECTS_BUCKET)
-          .upload(storagePath, file);
+        const { uploadUrl, fileUrl } = await createR2UploadUrl(clientId, project.id, file.name);
+        const uploadResponse = await fetch(uploadUrl, {
+          method: 'PUT',
+          body: file,
+        });
 
-        if (uploadError) throw uploadError;
+        if (!uploadResponse.ok) {
+          throw new Error(`Erro ao enviar "${file.name}" para o Cloudflare R2.`);
+        }
 
         // Mapeamento de tipo
         let fileType: 'step' | 'pdf' | 'jpeg' | 'png' = 'pdf';
@@ -293,7 +336,7 @@ export function OnboardingVXSteps({ clientId, initialStep = 1 }: OnboardingVXSte
           .from('vx_project_files')
           .insert({
             project_id: project.id,
-            file_url: storagePath,
+            file_url: fileUrl,
             file_name: file.name,
             file_type: fileType,
             file_size: file.size,
@@ -616,7 +659,7 @@ export function OnboardingVXSteps({ clientId, initialStep = 1 }: OnboardingVXSte
                     
                     <p className="text-sm font-semibold mb-1">Arraste e solte seus arquivos técnicos aqui</p>
                     <p className="text-xs text-muted-foreground max-w-[280px] mb-4">
-                      Apenas formatos <strong className="text-primary font-bold">.step, .pdf, .jpg, .jpeg, .png</strong> são permitidos.
+                      Apenas formatos <strong className="text-primary font-bold">.step, .pdf, .jpg, .jpeg, .png</strong> são permitidos. O envio vai direto para o Cloudflare R2.
                     </p>
                     
                     <label

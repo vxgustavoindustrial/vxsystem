@@ -1,6 +1,14 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import JSZip from "https://esm.sh/jszip@3.10.1";
+import { AwsClient } from "https://esm.sh/aws4fetch@1.0.18";
+
+const R2_ACCESS_KEY_ID = Deno.env.get("R2_ACCESS_KEY_ID") || "";
+const R2_SECRET_ACCESS_KEY = Deno.env.get("R2_SECRET_ACCESS_KEY") || "";
+const R2_BUCKET_NAME = Deno.env.get("R2_BUCKET_NAME") || "vx-deliveries";
+const R2_ACCOUNT_ID = Deno.env.get("R2_ACCOUNT_ID") || "";
+const R2_ENDPOINT = `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com`;
+const R2_FILE_PREFIX = "r2://";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -12,6 +20,11 @@ function json(body: Record<string, unknown>, status = 200) {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
+}
+
+function getR2ObjectKey(fileUrl: string) {
+  if (fileUrl.startsWith(R2_FILE_PREFIX)) return fileUrl.slice(R2_FILE_PREFIX.length);
+  return null;
 }
 
 serve(async (request) => {
@@ -44,8 +57,29 @@ serve(async (request) => {
 
     const zip = new JSZip();
     const signedUrls: { name: string; url: string }[] = [];
+    const r2 = new AwsClient({
+      accessKeyId: R2_ACCESS_KEY_ID,
+      secretAccessKey: R2_SECRET_ACCESS_KEY,
+      service: "s3",
+    });
 
     for (const file of body.files) {
+      const r2ObjectKey = getR2ObjectKey(file.path);
+      if (r2ObjectKey) {
+        const objectUrl = `${R2_ENDPOINT}/${R2_BUCKET_NAME}/${r2ObjectKey}`;
+        const signedRequest = await r2.sign(
+          new Request(objectUrl, { method: "GET" }),
+          { aws: { signQuery: true } },
+        );
+        signedUrls.push({ name: file.name, url: signedRequest.url });
+        continue;
+      }
+
+      if (/^https?:\/\//i.test(file.path)) {
+        signedUrls.push({ name: file.name, url: file.path });
+        continue;
+      }
+
       const { data: signedData, error: signedError } = await admin.storage
         .from(body.bucket)
         .createSignedUrl(file.path, 60);

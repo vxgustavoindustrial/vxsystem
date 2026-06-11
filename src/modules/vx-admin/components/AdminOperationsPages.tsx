@@ -47,10 +47,39 @@ type Software = {
 };
 
 const PROJECTS_BUCKET = "vx-projects";
+const R2_FILE_PREFIX = "r2://";
 const statusLabels = { analysis: "Em analise", processing: "Em processamento", completed: "Finalizado" };
 
 function isExternalProjectUrl(fileUrlOrPath: string) {
   return /^https?:\/\//i.test(fileUrlOrPath);
+}
+
+function isR2ProjectUrl(fileUrlOrPath: string) {
+  return fileUrlOrPath.startsWith(R2_FILE_PREFIX);
+}
+
+async function createR2DownloadUrl(fileUrl: string) {
+  const { data: sessionData } = await supabase.auth.getSession();
+  const accessToken = sessionData?.session?.access_token;
+  if (!accessToken) throw new Error("Sessao expirada. Faca login novamente.");
+
+  const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+  const res = await fetch(`${SUPABASE_URL}/functions/v1/create-r2-download-url`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({ fileUrl }),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => null);
+    throw new Error(err?.error || "Nao foi possivel liberar o download no Cloudflare R2.");
+  }
+
+  const data = await res.json();
+  return data.downloadUrl as string;
 }
 
 function Shell({ title, description, icon: Icon, children }: { title: string; description: string; icon: React.ElementType; children: ReactNode }) {
@@ -122,6 +151,16 @@ function fileKind(fileName: string) {
 }
 
 async function downloadProjectFile(file: ProjectFile) {
+  if (isR2ProjectUrl(file.file_url)) {
+    try {
+      const downloadUrl = await createR2DownloadUrl(file.file_url);
+      window.open(downloadUrl, "_blank", "noopener,noreferrer");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Nao foi possivel liberar o download.");
+    }
+    return;
+  }
+
   if (isExternalProjectUrl(file.file_url)) {
     window.open(file.file_url, "_blank", "noopener,noreferrer");
     return;
@@ -190,7 +229,6 @@ export function AdminProjectOperationsPage({ view }: { view: "uploads" | "proces
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [resultFile, setResultFile] = useState<File | null>(null);
-  const [resultExternalUrl, setResultExternalUrl] = useState("");
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [editForm, setEditForm] = useState({ title: "", description: "", animation_details: "", lighting_details: "" });
   const load = useCallback(async () => {
@@ -237,6 +275,7 @@ export function AdminProjectOperationsPage({ view }: { view: "uploads" | "proces
     setSaving(true);
     const files = project.vx_project_files || [];
     for (const file of files) {
+      if (isR2ProjectUrl(file.file_url) || isExternalProjectUrl(file.file_url)) continue;
       await supabase.storage.from(PROJECTS_BUCKET).remove([file.file_url]);
     }
     await supabase.from("vx_project_files").delete().eq("project_id", project.id);
@@ -275,9 +314,8 @@ export function AdminProjectOperationsPage({ view }: { view: "uploads" | "proces
 
   const publishResult = async (event: FormEvent) => {
     event.preventDefault();
-    if (!selected || (!resultFile && !resultExternalUrl.trim())) return;
-    const externalUrl = resultExternalUrl.trim();
-    const sourceName = resultFile?.name || externalUrl;
+    if (!selected || !resultFile) return;
+    const sourceName = resultFile.name;
     const extension = sourceName.split(".").pop()?.toLowerCase() || "";
     const allowedExtensions = isVxProgramador ? ["apk"] : ["step", "pdf", "jpg", "jpeg", "png"];
     const allowedMessage = isVxProgramador ? "Use arquivos APK para a entrega." : "Use arquivos STEP, PDF, JPEG ou PNG para a entrega.";
@@ -286,62 +324,52 @@ export function AdminProjectOperationsPage({ view }: { view: "uploads" | "proces
     }
     setSaving(true);
 
-    let path = externalUrl;
-    let fileName = sourceName;
-    let fileSize = null;
+    const { data: sessionData } = await supabase.auth.getSession();
+    const accessToken = sessionData?.session?.access_token;
+    if (!accessToken) {
+      setSaving(false);
+      return toast.error("Sessao expirada. Faca login novamente.");
+    }
 
-    if (resultFile) {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const accessToken = sessionData?.session?.access_token;
-      if (!accessToken) {
-        setSaving(false);
-        return toast.error("Sessao expirada. Faca login novamente.");
-      }
+    const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/create-r2-upload-url`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({
+        clientId: selected.client_id,
+        projectId: selected.id,
+        fileName: resultFile.name,
+        isResult: true,
+      }),
+    });
 
-      const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-      const res = await fetch(`${SUPABASE_URL}/functions/v1/create-r2-upload-url`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({
-          clientId: selected.client_id,
-          projectId: selected.id,
-          fileName: resultFile.name,
-        }),
-      });
+    if (!res.ok) {
+      const err = await res.json().catch(() => null);
+      setSaving(false);
+      return toast.error(err?.error || "Erro ao preparar upload no Cloudflare R2.");
+    }
 
-      if (!res.ok) {
-        const err = await res.json().catch(() => null);
-        setSaving(false);
-        return toast.error(err?.error || "Erro ao preparar upload no Cloudflare R2.");
-      }
+    const { uploadUrl, fileUrl } = await res.json();
 
-      const { uploadUrl, publicUrl } = await res.json();
+    const uploadRes = await fetch(uploadUrl, {
+      method: "PUT",
+      body: resultFile,
+    });
 
-      const uploadRes = await fetch(uploadUrl, {
-        method: "PUT",
-        body: resultFile,
-      });
-
-      if (!uploadRes.ok) {
-        setSaving(false);
-        return toast.error("Erro ao enviar arquivo para o Cloudflare R2.");
-      }
-
-      path = publicUrl;
-      fileSize = resultFile.size;
-    } else {
-      fileName = `Entrega externa (${extension.toUpperCase()})`;
+    if (!uploadRes.ok) {
+      setSaving(false);
+      return toast.error("Erro ao enviar arquivo para o Cloudflare R2.");
     }
 
     const result = await supabase.from("vx_project_files").insert({
       project_id: selected.id,
-      file_url: path,
-      file_name: fileName,
+      file_url: fileUrl,
+      file_name: resultFile.name,
       file_type: fileKind(sourceName),
-      file_size: fileSize,
+      file_size: resultFile.size,
       is_result: true,
     });
     if (!result.error) await supabase.from("vx_projects").update({ status: "completed" }).eq("id", selected.id);
@@ -349,7 +377,6 @@ export function AdminProjectOperationsPage({ view }: { view: "uploads" | "proces
     if (result.error) return toast.error("Erro ao publicar entrega.");
     toast.success("Entrega publicada na biblioteca do cliente.");
     setResultFile(null);
-    setResultExternalUrl("");
     void load();
   };
 
@@ -414,12 +441,8 @@ export function AdminProjectOperationsPage({ view }: { view: "uploads" | "proces
                     <h3 className="font-semibold">Publicar nova entrega</h3>
                     <p className="text-sm text-muted-foreground">Ao publicar, o projeto passa para finalizado e o cliente recebe acesso ao arquivo na propria biblioteca.</p>
                     <Input type="file" accept={isVxProgramador ? ".apk" : ".step,.pdf,.jpg,.jpeg,.png,.apk"} onChange={(event) => setResultFile(event.target.files?.[0] || null)} />
-                    <div className="space-y-2">
-                      <Label>Ou informe uma URL externa</Label>
-                      <Input type="url" placeholder={isVxProgramador ? "https://.../arquivo.apk" : "https://.../arquivo-final"} value={resultExternalUrl} onChange={(event) => setResultExternalUrl(event.target.value)} />
-                      <p className="text-xs text-muted-foreground">Use a URL externa se o arquivo estiver hospedado em outro servico (Google Drive, Dropbox, etc.). Uploads feitos aqui vao direto para o Cloudflare R2, sem limite de tamanho.</p>
-                    </div>
-                    <Button disabled={saving || (!resultFile && !resultExternalUrl.trim())}><Plus className="mr-2 h-4 w-4" />{saving ? "Publicando..." : "Publicar entrega final"}</Button>
+                    <p className="text-xs text-muted-foreground">O arquivo sera enviado direto para o Cloudflare R2. O Supabase guarda apenas a referencia para exibir o botao de download.</p>
+                    <Button disabled={saving || !resultFile}><Plus className="mr-2 h-4 w-4" />{saving ? "Publicando..." : "Publicar entrega final"}</Button>
                   </form>
                 </div>
               )}
