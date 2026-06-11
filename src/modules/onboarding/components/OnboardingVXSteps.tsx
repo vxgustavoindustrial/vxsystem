@@ -47,7 +47,7 @@ interface VXProjectFile {
   project_id: string;
   file_url: string;
   file_name: string;
-  file_type: 'step' | 'pdf' | 'jpeg' | 'png';
+  file_type: 'step' | 'pdf' | 'jpeg' | 'png' | 'apk';
   file_size: number | null;
   is_result: boolean;
   created_at: string;
@@ -73,7 +73,12 @@ function getProjectStoragePath(fileUrlOrPath: string) {
   return decodeURIComponent(fileUrlOrPath.slice(markerIndex + PUBLIC_PROJECTS_PATH.length));
 }
 
+function isExternalProjectUrl(fileUrlOrPath: string) {
+  return /^https?:\/\//i.test(fileUrlOrPath) && !fileUrlOrPath.includes(PUBLIC_PROJECTS_PATH);
+}
+
 async function createProjectDownloadUrl(fileUrlOrPath: string) {
+  if (isExternalProjectUrl(fileUrlOrPath)) return fileUrlOrPath;
   const storagePath = getProjectStoragePath(fileUrlOrPath);
   const { data, error } = await supabase.storage
     .from(PROJECTS_BUCKET)

@@ -49,6 +49,10 @@ type Software = {
 const PROJECTS_BUCKET = "vx-projects";
 const statusLabels = { analysis: "Em analise", processing: "Em processamento", completed: "Finalizado" };
 
+function isExternalProjectUrl(fileUrlOrPath: string) {
+  return /^https?:\/\//i.test(fileUrlOrPath);
+}
+
 function Shell({ title, description, icon: Icon, children }: { title: string; description: string; icon: React.ElementType; children: ReactNode }) {
   return (
     <div className="space-y-6">
@@ -110,6 +114,7 @@ export function AdminClientAccessPage() {
 
 function fileKind(fileName: string) {
   const extension = fileName.split(".").pop()?.toLowerCase();
+  if (extension === "apk") return "apk";
   if (extension === "step") return "step";
   if (extension === "png") return "png";
   if (extension === "jpeg" || extension === "jpg") return "jpeg";
@@ -117,6 +122,10 @@ function fileKind(fileName: string) {
 }
 
 async function downloadProjectFile(file: ProjectFile) {
+  if (isExternalProjectUrl(file.file_url)) {
+    window.open(file.file_url, "_blank", "noopener,noreferrer");
+    return;
+  }
   const { data, error } = await supabase.storage.from(PROJECTS_BUCKET).createSignedUrl(file.file_url, 60 * 60);
   if (error) return toast.error("Nao foi possivel liberar o download.");
   window.open(data.signedUrl, "_blank", "noopener,noreferrer");
@@ -181,6 +190,7 @@ export function AdminProjectOperationsPage({ view }: { view: "uploads" | "proces
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [resultFile, setResultFile] = useState<File | null>(null);
+  const [resultExternalUrl, setResultExternalUrl] = useState("");
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [editForm, setEditForm] = useState({ title: "", description: "", animation_details: "", lighting_details: "" });
   const load = useCallback(async () => {
@@ -265,47 +275,52 @@ export function AdminProjectOperationsPage({ view }: { view: "uploads" | "proces
 
   const publishResult = async (event: FormEvent) => {
     event.preventDefault();
-    if (!selected || !resultFile) return;
-    const extension = resultFile.name.split(".").pop()?.toLowerCase() || "";
+    if (!selected || (!resultFile && !resultExternalUrl.trim())) return;
+    const externalUrl = resultExternalUrl.trim();
+    const sourceName = resultFile?.name || externalUrl;
+    const extension = sourceName.split(".").pop()?.toLowerCase() || "";
     const allowedExtensions = isVxProgramador ? ["apk"] : ["step", "pdf", "jpg", "jpeg", "png"];
     const allowedMessage = isVxProgramador ? "Use arquivos APK para a entrega." : "Use arquivos STEP, PDF, JPEG ou PNG para a entrega.";
     if (!allowedExtensions.includes(extension)) {
       return toast.error(allowedMessage);
     }
     setSaving(true);
-    const path = `${selected.client_id}/${selected.id}/result-${crypto.randomUUID()}.${extension}`;
+    let path = externalUrl;
+    if (!externalUrl) {
+      const storagePath = `${selected.client_id}/${selected.id}/result-${crypto.randomUUID()}.${extension}`;
+      const { data: uploadUrl, error: signedError } = await supabase.storage
+        .from(PROJECTS_BUCKET)
+        .createSignedUploadUrl(storagePath, { upsert: true });
 
-    const { data: uploadUrl, error: signedError } = await supabase.storage
-      .from(PROJECTS_BUCKET)
-      .createSignedUploadUrl(path, { upsert: true });
+      if (signedError || !uploadUrl?.signedUrl) {
+        setSaving(false);
+        return toast.error(`Erro ao iniciar upload: ${signedError?.message || "URL nao gerada"}`);
+      }
 
-    if (signedError || !uploadUrl?.signedUrl) {
-      setSaving(false);
-      return toast.error(`Erro ao iniciar upload: ${signedError?.message || "URL nao gerada"}`);
-    }
+      const uploadRes = await fetch(uploadUrl.signedUrl, {
+        method: "PUT",
+        body: resultFile!.stream(),
+        duplex: "half",
+        headers: {
+          "Content-Type": resultFile!.type || "application/octet-stream",
+          "x-upsert": "true",
+        },
+      });
 
-    // Upload directly via PUT to the signed URL (bypasses Supabase SDK FormData)
-    const uploadRes = await fetch(uploadUrl.signedUrl, {
-      method: "PUT",
-      body: resultFile.stream(),
-      duplex: "half",
-      headers: {
-        "Content-Type": resultFile.type || "application/octet-stream",
-        "x-upsert": "true",
-      },
-    });
+      if (!uploadRes.ok) {
+        const errText = await uploadRes.text().catch(() => "");
+        setSaving(false);
+        return toast.error(`Erro ao enviar entrega (HTTP ${uploadRes.status}): ${errText || uploadRes.statusText}`);
+      }
 
-    if (!uploadRes.ok) {
-      const errText = await uploadRes.text().catch(() => "");
-      setSaving(false);
-      return toast.error(`Erro ao enviar entrega (HTTP ${uploadRes.status}): ${errText || uploadRes.statusText}`);
+      path = storagePath;
     }
     const result = await supabase.from("vx_project_files").insert({
       project_id: selected.id,
       file_url: path,
-      file_name: resultFile.name,
-      file_type: fileKind(resultFile.name),
-      file_size: resultFile.size,
+      file_name: resultFile?.name || `Entrega externa (${extension.toUpperCase()})`,
+      file_type: fileKind(sourceName),
+      file_size: resultFile?.size || null,
       is_result: true,
     });
     if (!result.error) await supabase.from("vx_projects").update({ status: "completed" }).eq("id", selected.id);
@@ -313,6 +328,7 @@ export function AdminProjectOperationsPage({ view }: { view: "uploads" | "proces
     if (result.error) return toast.error("Erro ao publicar entrega.");
     toast.success("Entrega publicada na biblioteca do cliente.");
     setResultFile(null);
+    setResultExternalUrl("");
     void load();
   };
 
@@ -376,8 +392,13 @@ export function AdminProjectOperationsPage({ view }: { view: "uploads" | "proces
                   <form className="space-y-4 rounded-xl border border-border bg-muted/20 p-5" onSubmit={publishResult}>
                     <h3 className="font-semibold">Publicar nova entrega</h3>
                     <p className="text-sm text-muted-foreground">Ao publicar, o projeto passa para finalizado e o cliente recebe acesso ao arquivo na propria biblioteca.</p>
-                    <Input type="file" accept={isVxProgramador ? ".apk" : ".step,.pdf,.jpg,.jpeg,.png,.apk"} onChange={(event) => setResultFile(event.target.files?.[0] || null)} required />
-                    <Button disabled={saving || !resultFile}><Plus className="mr-2 h-4 w-4" />{saving ? "Publicando..." : "Publicar entrega final"}</Button>
+                    <Input type="file" accept={isVxProgramador ? ".apk" : ".step,.pdf,.jpg,.jpeg,.png,.apk"} onChange={(event) => setResultFile(event.target.files?.[0] || null)} />
+                    <div className="space-y-2">
+                      <Label>Ou informe uma URL externa</Label>
+                      <Input type="url" placeholder={isVxProgramador ? "https://.../arquivo.apk" : "https://.../arquivo-final"} value={resultExternalUrl} onChange={(event) => setResultExternalUrl(event.target.value)} />
+                      <p className="text-xs text-muted-foreground">Use esta opcao para arquivos grandes que excedem o limite do Supabase Storage.</p>
+                    </div>
+                    <Button disabled={saving || (!resultFile && !resultExternalUrl.trim())}><Plus className="mr-2 h-4 w-4" />{saving ? "Publicando..." : "Publicar entrega final"}</Button>
                   </form>
                 </div>
               )}
