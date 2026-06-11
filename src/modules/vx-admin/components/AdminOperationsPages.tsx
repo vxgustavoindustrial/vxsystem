@@ -47,6 +47,7 @@ type Software = {
 };
 
 const PROJECTS_BUCKET = "vx-projects";
+const DIRECT_UPLOAD_LIMIT_BYTES = 50 * 1024 * 1024;
 const statusLabels = { analysis: "Em analise", processing: "Em processamento", completed: "Finalizado" };
 
 function isExternalProjectUrl(fileUrlOrPath: string) {
@@ -284,6 +285,9 @@ export function AdminProjectOperationsPage({ view }: { view: "uploads" | "proces
     if (!allowedExtensions.includes(extension)) {
       return toast.error(allowedMessage);
     }
+    if (resultFile && resultFile.size > DIRECT_UPLOAD_LIMIT_BYTES) {
+      return toast.error("Este projeto Supabase aceita upload direto de ate 50MB. Para APKs maiores, use a URL externa abaixo do campo de arquivo.");
+    }
     setSaving(true);
     let path = externalUrl;
     if (!externalUrl) {
@@ -396,7 +400,7 @@ export function AdminProjectOperationsPage({ view }: { view: "uploads" | "proces
                     <div className="space-y-2">
                       <Label>Ou informe uma URL externa</Label>
                       <Input type="url" placeholder={isVxProgramador ? "https://.../arquivo.apk" : "https://.../arquivo-final"} value={resultExternalUrl} onChange={(event) => setResultExternalUrl(event.target.value)} />
-                      <p className="text-xs text-muted-foreground">Use esta opcao para arquivos grandes que excedem o limite do Supabase Storage.</p>
+                      <p className="text-xs text-muted-foreground">Use esta opcao para arquivos grandes. O projeto atual do Supabase aceita upload direto apenas ate 50MB.</p>
                     </div>
                     <Button disabled={saving || (!resultFile && !resultExternalUrl.trim())}><Plus className="mr-2 h-4 w-4" />{saving ? "Publicando..." : "Publicar entrega final"}</Button>
                   </form>
