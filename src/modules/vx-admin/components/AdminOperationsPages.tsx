@@ -105,7 +105,6 @@ function uploadFileToSignedUrl(uploadUrl: string, file: File, onProgress: (progr
     xhr.onabort = () => reject(new Error("Upload cancelado."));
 
     xhr.open("PUT", uploadUrl);
-    xhr.setRequestHeader("Content-Type", file.type || "application/octet-stream");
     xhr.send(file);
   });
 }
