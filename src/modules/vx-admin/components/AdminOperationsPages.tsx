@@ -82,6 +82,34 @@ async function createR2DownloadUrl(fileUrl: string) {
   return data.downloadUrl as string;
 }
 
+function uploadFileToSignedUrl(uploadUrl: string, file: File, onProgress: (progress: number) => void) {
+  return new Promise<void>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+
+    xhr.upload.onprogress = (event) => {
+      if (!event.lengthComputable) return;
+      onProgress(Math.round((event.loaded / event.total) * 100));
+    };
+
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        onProgress(100);
+        resolve();
+        return;
+      }
+
+      reject(new Error(`Erro ao enviar arquivo para o Cloudflare R2 (HTTP ${xhr.status}).`));
+    };
+
+    xhr.onerror = () => reject(new Error("Falha de rede/CORS ao enviar arquivo para o Cloudflare R2."));
+    xhr.onabort = () => reject(new Error("Upload cancelado."));
+
+    xhr.open("PUT", uploadUrl);
+    xhr.setRequestHeader("Content-Type", file.type || "application/octet-stream");
+    xhr.send(file);
+  });
+}
+
 function Shell({ title, description, icon: Icon, children }: { title: string; description: string; icon: React.ElementType; children: ReactNode }) {
   return (
     <div className="space-y-6">
@@ -229,6 +257,7 @@ export function AdminProjectOperationsPage({ view }: { view: "uploads" | "proces
   const [selectedId, setSelectedId] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [resultFile, setResultFile] = useState<File | null>(null);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [editForm, setEditForm] = useState({ title: "", description: "", animation_details: "", lighting_details: "" });
@@ -324,61 +353,58 @@ export function AdminProjectOperationsPage({ view }: { view: "uploads" | "proces
       return toast.error(allowedMessage);
     }
     setSaving(true);
+    setUploadProgress(0);
 
-    const { data: sessionData } = await supabase.auth.getSession();
-    const accessToken = sessionData?.session?.access_token;
-    if (!accessToken) {
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
+      if (!accessToken) throw new Error("Sessao expirada. Faca login novamente.");
+
+      const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/create-r2-upload-url`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          clientId: selected.client_id,
+          projectId: selected.id,
+          fileName: resultFile.name,
+          isResult: true,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => null);
+        throw new Error(err?.error || "Erro ao preparar upload no Cloudflare R2.");
+      }
+
+      const { uploadUrl, fileUrl } = await res.json();
+      await uploadFileToSignedUrl(uploadUrl, resultFile, setUploadProgress);
+
+      const result = await supabase.from("vx_project_files").insert({
+        project_id: selected.id,
+        file_url: fileUrl,
+        file_name: resultFile.name,
+        file_type: fileKind(sourceName),
+        file_size: resultFile.size,
+        is_result: true,
+      });
+      if (result.error) throw new Error("Erro ao salvar a referencia da entrega.");
+
+      const { error: updateError } = await supabase.from("vx_projects").update({ status: "completed" }).eq("id", selected.id);
+      if (updateError) throw new Error("Arquivo enviado, mas houve erro ao finalizar o projeto.");
+
+      toast.success("Entrega publicada na biblioteca do cliente.");
+      setResultFile(null);
+      void load();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Erro ao publicar entrega.");
+    } finally {
       setSaving(false);
-      return toast.error("Sessao expirada. Faca login novamente.");
+      setUploadProgress(null);
     }
-
-    const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-    const res = await fetch(`${SUPABASE_URL}/functions/v1/create-r2-upload-url`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${accessToken}`,
-      },
-      body: JSON.stringify({
-        clientId: selected.client_id,
-        projectId: selected.id,
-        fileName: resultFile.name,
-        isResult: true,
-      }),
-    });
-
-    if (!res.ok) {
-      const err = await res.json().catch(() => null);
-      setSaving(false);
-      return toast.error(err?.error || "Erro ao preparar upload no Cloudflare R2.");
-    }
-
-    const { uploadUrl, fileUrl } = await res.json();
-
-    const uploadRes = await fetch(uploadUrl, {
-      method: "PUT",
-      body: resultFile,
-    });
-
-    if (!uploadRes.ok) {
-      setSaving(false);
-      return toast.error("Erro ao enviar arquivo para o Cloudflare R2.");
-    }
-
-    const result = await supabase.from("vx_project_files").insert({
-      project_id: selected.id,
-      file_url: fileUrl,
-      file_name: resultFile.name,
-      file_type: fileKind(sourceName),
-      file_size: resultFile.size,
-      is_result: true,
-    });
-    if (!result.error) await supabase.from("vx_projects").update({ status: "completed" }).eq("id", selected.id);
-    setSaving(false);
-    if (result.error) return toast.error("Erro ao publicar entrega.");
-    toast.success("Entrega publicada na biblioteca do cliente.");
-    setResultFile(null);
-    void load();
   };
 
   return (
@@ -443,7 +469,8 @@ export function AdminProjectOperationsPage({ view }: { view: "uploads" | "proces
                     <p className="text-sm text-muted-foreground">Ao publicar, o projeto passa para finalizado e o cliente recebe acesso ao arquivo na propria biblioteca.</p>
                     <Input type="file" accept={canPublishApk ? ".apk" : ".step,.pdf,.jpg,.jpeg,.png"} onChange={(event) => setResultFile(event.target.files?.[0] || null)} />
                     <p className="text-xs text-muted-foreground">O arquivo sera enviado direto para o Cloudflare R2. O Supabase guarda apenas a referencia para exibir o botao de download.</p>
-                    <Button disabled={saving || !resultFile}><Plus className="mr-2 h-4 w-4" />{saving ? "Publicando..." : "Publicar entrega final"}</Button>
+                    {uploadProgress !== null && <p className="text-xs font-semibold text-primary">Enviando para Cloudflare R2: {uploadProgress}%</p>}
+                    <Button disabled={saving || !resultFile}><Plus className="mr-2 h-4 w-4" />{saving ? uploadProgress !== null ? `Enviando ${uploadProgress}%` : "Publicando..." : "Publicar entrega final"}</Button>
                   </form>
                 </div>
               )}

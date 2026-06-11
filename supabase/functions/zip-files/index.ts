@@ -61,6 +61,7 @@ serve(async (request) => {
       accessKeyId: R2_ACCESS_KEY_ID,
       secretAccessKey: R2_SECRET_ACCESS_KEY,
       service: "s3",
+      region: "auto",
     });
 
     for (const file of body.files) {
