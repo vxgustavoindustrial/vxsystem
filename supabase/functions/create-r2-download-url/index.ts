@@ -1,6 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
-import { AwsClient } from "https://esm.sh/aws4fetch@1.0.18"
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || ""
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || ""
@@ -23,6 +22,76 @@ function json(body: Record<string, unknown>, status = 200) {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   })
+}
+
+const textEncoder = new TextEncoder()
+
+function toHex(bytes: Uint8Array) {
+  return Array.from(bytes).map((byte) => byte.toString(16).padStart(2, "0")).join("")
+}
+
+function awsEncode(value: string) {
+  return encodeURIComponent(value).replace(/[!'()*]/g, (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`)
+}
+
+function encodeObjectKey(key: string) {
+  return key.split("/").map(awsEncode).join("/")
+}
+
+async function sha256Hex(value: string) {
+  const hash = await crypto.subtle.digest("SHA-256", textEncoder.encode(value))
+  return toHex(new Uint8Array(hash))
+}
+
+async function hmac(key: Uint8Array, value: string) {
+  const cryptoKey = await crypto.subtle.importKey("raw", key, { name: "HMAC", hash: "SHA-256" }, false, ["sign"])
+  const signature = await crypto.subtle.sign("HMAC", cryptoKey, textEncoder.encode(value))
+  return new Uint8Array(signature)
+}
+
+async function getSigningKey(secret: string, dateStamp: string) {
+  const kDate = await hmac(textEncoder.encode(`AWS4${secret}`), dateStamp)
+  const kRegion = await hmac(kDate, "auto")
+  const kService = await hmac(kRegion, "s3")
+  return await hmac(kService, "aws4_request")
+}
+
+async function createR2SignedUrl(method: "GET" | "PUT", objectKey: string) {
+  const now = new Date()
+  const amzDate = now.toISOString().replace(/[:-]|\.\d{3}/g, "")
+  const dateStamp = amzDate.slice(0, 8)
+  const credentialScope = `${dateStamp}/auto/s3/aws4_request`
+  const host = `${R2_ACCOUNT_ID}.r2.cloudflarestorage.com`
+  const canonicalUri = `/${R2_BUCKET_NAME}/${encodeObjectKey(objectKey)}`
+  const params: Record<string, string> = {
+    "X-Amz-Algorithm": "AWS4-HMAC-SHA256",
+    "X-Amz-Credential": `${R2_ACCESS_KEY_ID}/${credentialScope}`,
+    "X-Amz-Date": amzDate,
+    "X-Amz-Expires": String(60 * 60 * 6),
+    "X-Amz-SignedHeaders": "host",
+  }
+  const canonicalQuery = Object.entries(params)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([key, value]) => `${awsEncode(key)}=${awsEncode(value)}`)
+    .join("&")
+  const canonicalRequest = [
+    method,
+    canonicalUri,
+    canonicalQuery,
+    `host:${host}\n`,
+    "host",
+    "UNSIGNED-PAYLOAD",
+  ].join("\n")
+  const stringToSign = [
+    "AWS4-HMAC-SHA256",
+    amzDate,
+    credentialScope,
+    await sha256Hex(canonicalRequest),
+  ].join("\n")
+  const signingKey = await getSigningKey(R2_SECRET_ACCESS_KEY, dateStamp)
+  const signature = toHex(await hmac(signingKey, stringToSign))
+
+  return `${R2_ENDPOINT}${canonicalUri}?${canonicalQuery}&X-Amz-Signature=${signature}`
 }
 
 function getObjectKey(fileUrl: string) {
@@ -96,19 +165,9 @@ serve(async (req) => {
 
     if (!isVxUser && !isProjectClient) return json({ error: "Forbidden" }, 403)
 
-    const aws = new AwsClient({
-      accessKeyId: R2_ACCESS_KEY_ID,
-      secretAccessKey: R2_SECRET_ACCESS_KEY,
-      service: "s3",
-      region: "auto",
-    })
+    const downloadUrl = await createR2SignedUrl("GET", objectKey)
 
-    const signedRequest = await aws.sign(
-      new Request(objectUrl, { method: "GET" }),
-      { aws: { signQuery: true } },
-    )
-
-    return json({ downloadUrl: signedRequest.url })
+    return json({ downloadUrl })
   } catch (err) {
     return json({ error: err instanceof Error ? err.message : "Internal server error" }, 500)
   }
