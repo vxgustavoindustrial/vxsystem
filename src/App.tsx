@@ -19,23 +19,10 @@ import { AuthLoadingScreen } from './components/ui/AuthLoadingScreen';
 const AdminDashboard = lazy(() => import('./app/admin/page').then((mod) => ({ default: mod.AdminDashboard })));
 const AdminClientsPage = lazy(() => import('./app/admin/clients/page').then((mod) => ({ default: mod.AdminClientsPage })));
 const AdminClientDetailPage = lazy(() => import('./app/admin/clients/[id]/page').then((mod) => ({ default: mod.AdminClientDetailPage })));
-const AdminDocumentsPage = lazy(() => import('./app/admin/documents/page').then((mod) => ({ default: mod.AdminDocumentsPage })));
-const AdminTasksPage = lazy(() => import('./app/admin/tasks/page').then((mod) => ({ default: mod.AdminTasksPage })));
 const AdminTeamPage = lazy(() => import('./app/admin/team/page').then((mod) => ({ default: mod.AdminTeamPage })));
-const AdminCalendarPage = lazy(() => import('./app/admin/calendar/page').then((mod) => ({ default: mod.AdminCalendarPage })));
 const AdminSupportPage = lazy(() => import('./app/admin/support/page'));
 const AdminTicketDetailPage = lazy(() => import('./app/admin/support/[ticketId]/page'));
-const AdminContractsPage = lazy(() => import('./modules/vx-admin/components/AdminCommercialPages').then((mod) => ({ default: mod.AdminContractsPage })));
-const AdminServicesPage = lazy(() => import('./modules/vx-admin/components/AdminCommercialPages').then((mod) => ({ default: mod.AdminServicesPage })));
-const AdminNdaPage = lazy(() => import('./modules/vx-admin/components/AdminCommercialPages').then((mod) => ({ default: mod.AdminNdaPage })));
-const AdminPlatformPage = lazy(() => import('./modules/vx-admin/components/AdminCommercialPages').then((mod) => ({ default: mod.AdminPlatformPage })));
 const UnifiedFinancialPage = lazy(() => import('./app/admin/financial/UnifiedFinancialPage').then((mod) => ({ default: mod.UnifiedFinancialPage })));
-const CrmKanbanPage = lazy(() => import('./modules/crm/CrmKanbanPage').then((mod) => ({ default: mod.CrmKanbanPage })));
-const AdminUploadsPage = lazy(() => import('./modules/vx-admin/components/AdminOperationsPages').then((mod) => ({ default: mod.AdminUploadsPage })));
-const AdminProcessingPage = lazy(() => import('./modules/vx-admin/components/AdminOperationsPages').then((mod) => ({ default: mod.AdminProcessingPage })));
-const AdminLibraryPage = lazy(() => import('./modules/vx-admin/components/AdminOperationsPages').then((mod) => ({ default: mod.AdminLibraryPage })));
-const AdminInstallationPage = lazy(() => import('./modules/vx-admin/components/AdminOperationsPages').then((mod) => ({ default: mod.AdminInstallationPage })));
-const VxAccessManagementPage = lazy(() => import('./app/admin/access-vx/page').then((mod) => ({ default: mod.VxAccessManagementPage })));
 
 const ClientDashboard = lazy(() => import('./app/client/page').then((mod) => ({ default: mod.ClientDashboard })));
 const ClientOnboardingPage = lazy(() => import('./app/client/onboarding/page').then((mod) => ({ default: mod.ClientOnboardingPage })));
@@ -44,10 +31,6 @@ const ClientTicketDetailPage = lazy(() => import('./app/client/support/[ticketId
 const ClientFinancialPage = lazy(() => import('./app/client/financial/page').then((mod) => ({ default: mod.ClientFinancialPage })));
 const ClientDocumentsPage = lazy(() => import('./app/client/documents/page').then((mod) => ({ default: mod.ClientDocumentsPage })));
 const ClientAccessPage = lazy(() => import('./modules/vx-client/components/ClientVxPages').then((mod) => ({ default: mod.ClientAccessPage })));
-const ClientUploadPage = lazy(() => import('./modules/vx-client/components/ClientVxPages').then((mod) => ({ default: mod.ClientUploadPage })));
-const ClientProcessingPage = lazy(() => import('./modules/vx-client/components/ClientVxPages').then((mod) => ({ default: mod.ClientProcessingPage })));
-const ClientLibraryPage = lazy(() => import('./modules/vx-client/components/ClientVxPages').then((mod) => ({ default: mod.ClientLibraryPage })));
-const ClientInstallationPage = lazy(() => import('./modules/vx-client/components/ClientVxPages').then((mod) => ({ default: mod.ClientInstallationPage })));
 
 // Agência
 
@@ -214,25 +197,12 @@ export default function App() {
           <Route element={<ProtectedRoute requiredRole="admin" />}>
             <Route element={<AdminLayout />}>
               <Route path="/admin" element={<AdminDashboard />} />
-              <Route path="/admin/crm" element={<CrmKanbanPage />} />
-              <Route path="/admin/contracts" element={<AdminContractsPage />} />
               <Route path="/admin/financeiro" element={<UnifiedFinancialPage />} />
-              <Route path="/admin/services" element={<AdminServicesPage />} />
-              <Route path="/admin/nda" element={<AdminNdaPage />} />
-              <Route path="/admin/platform" element={<AdminPlatformPage />} />
-              <Route path="/admin/uploads" element={<AdminUploadsPage />} />
-              <Route path="/admin/processing" element={<AdminProcessingPage />} />
-              <Route path="/admin/library" element={<AdminLibraryPage />} />
-              <Route path="/admin/installation" element={<AdminInstallationPage />} />
               <Route path="/admin/support" element={<AdminSupportPage />} />
               <Route path="/admin/support/:ticketId" element={<AdminTicketDetailPage />} />
               <Route path="/admin/clients" element={<AdminClientsPage />} />
               <Route path="/admin/clients/:id" element={<AdminClientDetailPage />} />
-              <Route path="/admin/documents" element={<AdminDocumentsPage />} />
-              <Route path="/admin/tasks" element={<AdminTasksPage />} />
               <Route path="/admin/team" element={<AdminTeamPage />} />
-              <Route path="/admin/calendar" element={<AdminCalendarPage />} />
-              <Route path="/admin/access-vx" element={<VxAccessManagementPage />} />
             </Route>
           </Route>
           
@@ -240,17 +210,11 @@ export default function App() {
             <Route element={<ClientLayout />}>
               <Route path="/client" element={<ClientDashboard />} />
               <Route path="/client/access" element={<ClientAccessPage />} />
-              <Route path="/client/upload" element={<ClientUploadPage />} />
-              <Route path="/client/processing" element={<ClientProcessingPage />} />
-              <Route path="/client/library" element={<ClientLibraryPage />} />
-              <Route path="/client/installation" element={<ClientInstallationPage />} />
               <Route path="/client/onboarding" element={<ClientOnboardingPage />} />
-              {/* Calendário do cliente eliminado - vive dentro de Social Media */}
               <Route path="/client/support" element={<ClientSupportPage />} />
               <Route path="/client/support/:ticketId" element={<ClientTicketDetailPage />} />
               <Route path="/client/documents" element={<ClientDocumentsPage />} />
               <Route path="/client/financial" element={<ClientFinancialPage />} />
-              {/* Módulo Geral do cliente eliminado */}
             </Route>
           </Route>
           

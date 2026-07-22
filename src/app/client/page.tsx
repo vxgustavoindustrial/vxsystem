@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, Bell, FileText, MessageSquare, Rocket, Wallet } from "lucide-react";
+import { ArrowRight, Bell, MessageSquare, Rocket } from "lucide-react";
 
 import { supabase } from "@/services/supabase";
 import { useAuth } from "@/hooks/useAuth";
@@ -68,29 +68,22 @@ export function ClientDashboard() {
       try {
         setLoading(true);
 
-        const [projectsRes, invoicesRes, tasksRes, ticketsRes, notifsRes] = await Promise.all([
+        const promises = [
           supabase.from("vx_projects").select("id, status", { count: "exact", head: true }).eq("client_id", clientId),
-          supabase.from("financial_invoices").select("amount, status").eq("client_id", clientId),
-          supabase.from("tasks").select("id", { count: "exact", head: true }).eq("client_id", clientId).in("status", ["todo", "in_progress", "review"]),
           supabase.from("support_tickets").select("id", { count: "exact", head: true }).eq("client_id", clientId).in("status", ["open", "in_progress"]),
           supabase.from("notifications").select("id", { count: "exact", head: true }).is("read_at", null),
-        ]);
+        ] as const;
 
-        const pendingValue = (invoicesRes.data || [])
-          .filter((invoice) => invoice.status !== "paid")
-          .reduce((sum, invoice) => sum + Number(invoice.amount || 0), 0);
-
-        const activeProjects = projectsRes.count || 0;
-        const completedProjects = 0;
+        const [projectsRes, ticketsRes, notifsRes] = await Promise.all(promises);
 
         setData({
-          active_projects: activeProjects,
-          completed_projects: completedProjects,
-          open_tasks: tasksRes.count || 0,
+          active_projects: projectsRes.count || 0,
+          completed_projects: 0,
+          open_tasks: 0,
           open_tickets: ticketsRes.count || 0,
           unread_notifications: notifsRes.count || 0,
-          pending_invoices: (invoicesRes.data || []).filter((invoice) => invoice.status !== "paid").length,
-          pending_value: pendingValue,
+          pending_invoices: 0,
+          pending_value: 0,
         });
       } catch (err) {
         console.error("Erro ao carregar dashboard:", err);
@@ -146,25 +139,11 @@ export function ClientDashboard() {
           description="Suporte em andamento"
         />
         <StatCard
-          title="Faturas Pendentes"
-          value={stats.pending_invoices}
-          icon={Wallet}
-          href="/client/financial"
-          description={`R$ ${stats.pending_value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
-        />
-        <StatCard
           title="Notificacoes nao lidas"
           value={stats.unread_notifications}
           icon={Bell}
           href="/client/support"
           description="Atualizacoes do sistema"
-        />
-        <StatCard
-          title="Documentos"
-          value="Acessar"
-          icon={FileText}
-          href="/client/documents"
-          description="Biblioteca do cliente"
         />
       </div>
 
@@ -174,23 +153,11 @@ export function ClientDashboard() {
         <CardHeader>
           <CardTitle className="text-lg">Acoes Rapidas</CardTitle>
         </CardHeader>
-        <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <Button variant="outline" className="justify-start gap-2" asChild>
             <a href="/client/onboarding">
               <Rocket className="h-4 w-4" />
               Ver Onboarding
-            </a>
-          </Button>
-          <Button variant="outline" className="justify-start gap-2" asChild>
-            <a href="/client/documents">
-              <FileText className="h-4 w-4" />
-              Ver Documentos
-            </a>
-          </Button>
-          <Button variant="outline" className="justify-start gap-2" asChild>
-            <a href="/client/financial">
-              <Wallet className="h-4 w-4" />
-              Ver Financeiro
             </a>
           </Button>
           <Button variant="outline" className="justify-start gap-2" asChild>

@@ -142,7 +142,7 @@ async function createProjectDownloadUrl(fileUrlOrPath: string) {
 }
 
 export function OnboardingVXSteps({ clientId, initialStep = 1 }: OnboardingVXStepsProps) {
-  const { isFinanceiro } = useAuth();
+  const { isFinanceiro, isProjetista } = useAuth();
   const [activeStep, setActiveStep] = useState<number>(initialStep);
   const [projects, setProjects] = useState<VXProject[]>([]);
   const [selectedProject, setSelectedProject] = useState<VXProject | null>(null);
@@ -446,7 +446,7 @@ export function OnboardingVXSteps({ clientId, initialStep = 1 }: OnboardingVXSte
     { num: 2, label: 'Envio de Modelos', icon: UploadCloud },
     { num: 3, label: 'Esteira de Conversão', icon: Activity },
     { num: 4, label: 'Biblioteca de Downloads', icon: FileCheck },
-    { num: 5, label: 'Configuração Óculos', icon: Cpu },
+    ...(isProjetista ? [] : [{ num: 5, label: 'Configuração Óculos' as const, icon: Cpu }]),
   ];
 
   return (
@@ -999,13 +999,15 @@ export function OnboardingVXSteps({ clientId, initialStep = 1 }: OnboardingVXSte
               >
                 Voltar
               </button>
-              <button
-                onClick={() => setActiveStep(5)}
-                className="flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground font-bold rounded-xl shadow-md hover:scale-[1.02] transition-transform"
-              >
-                Acessar Setup Óculos
-                <ArrowRight className="w-4.5 h-4.5" />
-              </button>
+              {!isProjetista && (
+                <button
+                  onClick={() => setActiveStep(5)}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground font-bold rounded-xl shadow-md hover:scale-[1.02] transition-transform"
+                >
+                  Acessar Setup Óculos
+                  <ArrowRight className="w-4.5 h-4.5" />
+                </button>
+              )}
             </div>
           </div>
         )}

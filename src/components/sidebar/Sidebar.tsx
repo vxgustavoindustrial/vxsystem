@@ -6,11 +6,9 @@ import { SidebarGroup } from "./SidebarGroup";
 import { SidebarItem } from "./SidebarItem";
 import { cn } from "../../lib/utils";
 import {
-  LayoutDashboard, Briefcase, FileText, 
-  CreditCard, Lock, ShoppingCart, Upload, Cpu, Library, 
+  LayoutDashboard, CreditCard, Upload, Cpu, Library,
   Glasses, Headphones, LogOut, Hexagon, Users,
-  CalendarDays, ClipboardList, FolderOpen, Milestone,
-  Radio, Shield
+  Milestone, FolderOpen
 } from "lucide-react";
 import { supabase } from "../../services/supabase";
 import { useAuthStore } from "../../store/authStore";
@@ -42,33 +40,23 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const textClasses = isMobile ? "block" : "hidden group-hover:block transition-all duration-200";
 
 
-  const showAll = isVxAdmin;
-  const showFinancial = showAll || isVxFinanceiro;
-  const showOperations = showAll || isVxProgramador;
+  const showFinancial = isVxFinanceiro;
+  const showOperations = isVxProgramador;
 
   const adminItems = (
     <>
       <SidebarGroup label="Principal">
         <SidebarItem icon={LayoutDashboard} label="Dashboard" href="/admin" onNavigate={onNavigate} />
-        {(showAll || isVxProgramador) && (
+        {(isVxAdmin || isVxProgramador) && (
           <SidebarItem icon={Users} label="Clientes" href="/admin/clients" onNavigate={onNavigate} />
         )}
-        {showAll && (
+        {isVxAdmin && (
           <SidebarItem icon={Users} label="Equipe" href="/admin/team" onNavigate={onNavigate} />
         )}
       </SidebarGroup>
-      {showAll && (
-        <SidebarGroup label="CRM">
-          <SidebarItem icon={Radio} label="CRM" href="/admin/crm" onNavigate={onNavigate} />
-        </SidebarGroup>
-      )}
       {showFinancial && (
         <SidebarGroup label="Financeiro">
           <SidebarItem icon={CreditCard} label="Financeiro" href="/admin/financeiro" onNavigate={onNavigate} />
-          <SidebarItem icon={FileText} label="Contratos" href="/admin/contracts" onNavigate={onNavigate} />
-          <SidebarItem icon={Briefcase} label="Prest. Serv." href="/admin/services" onNavigate={onNavigate} />
-          <SidebarItem icon={Lock} label="Confidencialidade" href="/admin/nda" onNavigate={onNavigate} />
-          <SidebarItem icon={ShoppingCart} label="Aquisição Plat." href="/admin/platform" onNavigate={onNavigate} />
         </SidebarGroup>
       )}
       {showOperations && (
@@ -79,21 +67,9 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
           <SidebarItem icon={Glasses} label="Instalação" href="/admin/installation" onNavigate={onNavigate} />
         </SidebarGroup>
       )}
-      {showAll && (
+      {isVxAdmin && (
         <SidebarGroup label="Atendimento">
           <SidebarItem icon={Headphones} label="SAC" href="/admin/support" onNavigate={onNavigate} />
-          <SidebarItem icon={FolderOpen} label="Documentos" href="/admin/documents" onNavigate={onNavigate} />
-        </SidebarGroup>
-      )}
-      {showAll && (
-        <SidebarGroup label="Execucao">
-          <SidebarItem icon={ClipboardList} label="Tarefas" href="/admin/tasks" onNavigate={onNavigate} />
-          <SidebarItem icon={CalendarDays} label="Calendario" href="/admin/calendar" onNavigate={onNavigate} />
-        </SidebarGroup>
-      )}
-      {showAll && (
-        <SidebarGroup label="Administrativo">
-          <SidebarItem icon={Shield} label="Niveis de Acesso" href="/admin/access-vx" onNavigate={onNavigate} />
         </SidebarGroup>
       )}
     </>
@@ -105,14 +81,6 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         <SidebarItem icon={LayoutDashboard} label="Dashboard" href="/client" onNavigate={onNavigate} />
         <SidebarItem icon={Milestone} label="Jornada VX" href="/client/onboarding" onNavigate={onNavigate} />
       </SidebarGroup>
-      {isProjetista && (
-        <SidebarGroup label="Operacao do Cliente">
-          <SidebarItem icon={Upload} label="Uploads" href="/client/upload" onNavigate={onNavigate} />
-          <SidebarItem icon={Cpu} label="Processamento" href="/client/processing" onNavigate={onNavigate} />
-          <SidebarItem icon={Library} label="Biblioteca" href="/client/library" onNavigate={onNavigate} />
-          <SidebarItem icon={Glasses} label="Instalação" href="/client/installation" onNavigate={onNavigate} />
-        </SidebarGroup>
-      )}
       <SidebarGroup label="Suporte">
         <SidebarItem icon={Headphones} label="SAC" href="/client/support" onNavigate={onNavigate} />
         {!isProjetista && <SidebarItem icon={CreditCard} label="Financeiro" href="/client/financial" onNavigate={onNavigate} />}

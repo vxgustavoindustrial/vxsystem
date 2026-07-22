@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { FileText, Loader2, MessageSquare, Rocket, UserCog, Wallet } from "lucide-react";
+import { UserCog, ReceiptText, CheckCircle2, AlertCircle, Clock } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/services/supabase";
@@ -12,11 +12,7 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ClientEditModal } from "@/components/modals/ClientEditModal";
 import { ClientAccessTab } from "@/components/team/ClientAccessTab";
-import { DocumentLibrary } from "@/components/documents/DocumentLibrary";
-import { OnboardingRoadmap } from "@/modules/onboarding/components/OnboardingRoadmap";
-import { AutomationService } from "@/services/automation.service";
 import type { ClientWithProfile } from "@/types/client.types";
-import type { Task } from "@/types/general.types";
 
 type AssignedProfile = {
   id: string;
@@ -24,17 +20,44 @@ type AssignedProfile = {
   email?: string | null;
 };
 
+type Subscription = {
+  id: string;
+  plan_name: string;
+  status: string;
+  monthly_amount: number;
+  support_level: string;
+  platform_seats: number;
+  starts_on: string;
+  renews_on_day: number | null;
+};
+
+const subscriptionStatusLabels: Record<string, { label: string; class: string }> = {
+  active: { label: "Ativa", class: "bg-emerald-500/10 text-emerald-500" },
+  past_due: { label: "Em atraso", class: "bg-amber-500/10 text-amber-500" },
+  suspended: { label: "Suspensa", class: "bg-red-500/10 text-red-500" },
+  cancelled: { label: "Cancelada", class: "bg-muted text-muted-foreground" },
+};
+
+function SubscriptionStatus({ status }: { status: string }) {
+  const cfg = subscriptionStatusLabels[status] || { label: status, class: "bg-muted text-muted-foreground" };
+  return <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${cfg.class}`}>{cfg.label}</span>;
+}
+
+function SubscriptionIcon({ status }: { status: string }) {
+  if (status === "active") return <CheckCircle2 className="h-5 w-5 text-emerald-500" />;
+  if (status === "past_due") return <AlertCircle className="h-5 w-5 text-amber-500" />;
+  return <Clock className="h-5 w-5 text-muted-foreground" />;
+}
+
 export function AdminClientDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuthStore();
 
   const [client, setClient] = useState<ClientWithProfile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [loadingOnboarding, setLoadingOnboarding] = useState(false);
-  const [onboardingTasks, setOnboardingTasks] = useState<Task[]>([]);
   const [isEditModalOpen, setEditModalOpen] = useState(false);
-  const [syncingFlow, setSyncingFlow] = useState(false);
+  const [subscription, setSubscription] = useState<Subscription | null>(null);
+  const [loadingSubscription, setLoadingSubscription] = useState(false);
 
   const fetchClient = useCallback(async () => {
     if (!id) return;
@@ -47,9 +70,7 @@ export function AdminClientDetailPage() {
         .eq("id", id)
         .single();
 
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
 
       const clientRow = data as ClientWithProfile;
       let profile: AssignedProfile | undefined;
@@ -61,17 +82,11 @@ export function AdminClientDetailPage() {
           .eq("id", clientRow.assigned_to)
           .maybeSingle();
 
-        if (profileError) {
-          throw profileError;
-        }
-
+        if (profileError) throw profileError;
         profile = profileData as AssignedProfile | undefined;
       }
 
-      setClient({
-        ...clientRow,
-        profiles: profile,
-      });
+      setClient({ ...clientRow, profiles: profile });
     } catch (error) {
       console.error("Erro ao encontrar cliente:", error);
       toast.error("Nao foi possivel carregar o cliente.");
@@ -81,71 +96,34 @@ export function AdminClientDetailPage() {
     }
   }, [id]);
 
-  const fetchOnboardingTasks = useCallback(async () => {
+  const fetchSubscription = useCallback(async () => {
     if (!id) return;
-
-    setLoadingOnboarding(true);
+    setLoadingSubscription(true);
     try {
       const { data, error } = await supabase
-        .from("tasks")
+        .from("client_subscriptions")
         .select("*")
         .eq("client_id", id)
-        .ilike("stage", "onboarding_%")
-        .order("created_at", { ascending: true });
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
-      if (error) {
-        throw error;
-      }
-
-      setOnboardingTasks((data as Task[]) || []);
+      if (error) throw error;
+      setSubscription(data as Subscription | null);
     } catch (error) {
-      console.error("Erro ao carregar onboarding:", error);
-      toast.error("Nao foi possivel carregar o onboarding.");
+      console.error("Erro ao carregar assinatura:", error);
     } finally {
-      setLoadingOnboarding(false);
+      setLoadingSubscription(false);
     }
   }, [id]);
 
   useEffect(() => {
     void fetchClient();
-    void fetchOnboardingTasks();
-  }, [fetchClient, fetchOnboardingTasks]);
-
-  const handleSyncFlow = async () => {
-    if (!id || !user?.id) return;
-
-    setSyncingFlow(true);
-    try {
-      const { data: flows, error } = await supabase
-        .from("flows")
-        .select("id")
-        .ilike("name", "%Onboarding%")
-        .eq("is_active", true)
-        .limit(1);
-
-      if (error) {
-        throw error;
-      }
-
-      if (flows && flows.length > 0) {
-        await AutomationService.executeFlow(flows[0].id, id, user.id);
-      } else {
-        await AutomationService.initializeOnboarding(id, user.id);
-      }
-
-      await fetchOnboardingTasks();
-      toast.success("Fluxo de onboarding sincronizado.");
-    } catch (error) {
-      console.error("Erro ao sincronizar fluxo:", error);
-      toast.error("Nao foi possivel sincronizar o fluxo.");
-    } finally {
-      setSyncingFlow(false);
-    }
-  };
+    void fetchSubscription();
+  }, [fetchClient, fetchSubscription]);
 
   const handleImpersonate = () => {
     if (!id) return;
-
     useAuthStore.getState().setImpersonatedClientId(id);
     navigate("/client");
     toast.success(`Visualizando portal de ${client?.name}`);
@@ -179,25 +157,13 @@ export function AdminClientDetailPage() {
       <Tabs defaultValue="overview" className="w-full">
         <TabsList className="flex flex-wrap justify-start">
           <TabsTrigger value="overview">Visao Geral</TabsTrigger>
-          <TabsTrigger value="onboarding">
-            <Rocket className="mr-2 h-4 w-4" />
-            Onboarding
-          </TabsTrigger>
           <TabsTrigger value="access">
             <UserCog className="mr-2 h-4 w-4" />
             Acessos
           </TabsTrigger>
-          <TabsTrigger value="documents">
-            <FileText className="mr-2 h-4 w-4" />
-            Documentos
-          </TabsTrigger>
-          <TabsTrigger value="financial">
-            <Wallet className="mr-2 h-4 w-4" />
-            Financeiro
-          </TabsTrigger>
-          <TabsTrigger value="support">
-            <MessageSquare className="mr-2 h-4 w-4" />
-            Suporte
+          <TabsTrigger value="acquisition">
+            <ReceiptText className="mr-2 h-4 w-4" />
+            Aquisição
           </TabsTrigger>
         </TabsList>
 
@@ -234,13 +200,7 @@ export function AdminClientDetailPage() {
                       key={key}
                       className="rounded-md border border-primary/20 bg-primary/10 px-2 py-1 text-xs font-medium capitalize text-primary"
                     >
-                      {key === "financial"
-                        ? "Financeiro"
-                        : key === "documents"
-                          ? "Documentos"
-                          : key === "support"
-                            ? "Suporte"
-                            : key}
+                      {key === "financial" ? "Financeiro" : key === "documents" ? "Documentos" : key === "support" ? "Suporte" : key}
                     </span>
                   ))
                 ) : (
@@ -251,57 +211,51 @@ export function AdminClientDetailPage() {
           </div>
         </TabsContent>
 
-        <TabsContent value="onboarding" className="space-y-4 pt-4">
-          <div className="flex flex-wrap items-center gap-3">
-            <Button onClick={handleSyncFlow} disabled={syncingFlow}>
-              {syncingFlow ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Rocket className="mr-2 h-4 w-4" />}
-              Sincronizar fluxo
-            </Button>
-            <Button variant="outline" onClick={fetchOnboardingTasks}>
-              Atualizar progresso
-            </Button>
-          </div>
-
-          {loadingOnboarding ? (
-            <LoadingSkeleton className="h-[420px] w-full" />
-          ) : onboardingTasks.length > 0 ? (
-            <OnboardingRoadmap tasks={onboardingTasks} readOnly />
-          ) : (
-            <div className="rounded-2xl border border-dashed p-10 text-center text-muted-foreground">
-              Nenhuma etapa de onboarding encontrada para este cliente.
-            </div>
-          )}
-        </TabsContent>
-
         <TabsContent value="access" className="pt-4">
           <ClientAccessTab clientId={id || ""} />
         </TabsContent>
 
-        <TabsContent value="documents" className="pt-4">
-          <DocumentLibrary clientIdFilter={id || ""} />
-        </TabsContent>
-
-        <TabsContent value="financial" className="pt-4">
+        <TabsContent value="acquisition" className="space-y-4 pt-4">
           <div className="rounded-xl border bg-card p-5">
-            <h3 className="mb-2 text-lg font-semibold">Financeiro do Cliente</h3>
-            <p className="text-sm text-muted-foreground">
-              As faturas e assinaturas deste cliente ficam centralizadas no modulo financeiro geral.
-            </p>
-            <Button className="mt-4" variant="outline" onClick={() => navigate("/agency/financial")}>
-              Abrir Financeiro Geral
-            </Button>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="support" className="pt-4">
-          <div className="rounded-xl border bg-card p-5">
-            <h3 className="mb-2 text-lg font-semibold">Suporte</h3>
-            <p className="text-sm text-muted-foreground">
-              O historico de tickets deste cliente pode ser acompanhado no modulo de suporte.
-            </p>
-            <Button className="mt-4" variant="outline" onClick={() => navigate(`/agency/support?clientId=${client.id}`)}>
-              Ver Tickets
-            </Button>
+            <h3 className="mb-4 text-lg font-semibold">Plano / Assinatura</h3>
+            {loadingSubscription ? (
+              <LoadingSkeleton className="h-32 w-full" />
+            ) : subscription ? (
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <SubscriptionIcon status={subscription.status} />
+                  <div>
+                    <p className="text-xl font-bold">{subscription.plan_name}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {Number(subscription.monthly_amount).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                      /mes
+                    </p>
+                  </div>
+                  <div className="ml-auto">
+                    <SubscriptionStatus status={subscription.status} />
+                  </div>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <div className="rounded-lg bg-muted/40 p-3">
+                    <p className="text-xs font-semibold uppercase text-muted-foreground">SAC</p>
+                    <p className="mt-1 text-sm font-medium capitalize">{subscription.support_level}</p>
+                  </div>
+                  <div className="rounded-lg bg-muted/40 p-3">
+                    <p className="text-xs font-semibold uppercase text-muted-foreground">Licencas</p>
+                    <p className="mt-1 text-sm font-medium">{subscription.platform_seats}</p>
+                  </div>
+                  <div className="rounded-lg bg-muted/40 p-3">
+                    <p className="text-xs font-semibold uppercase text-muted-foreground">Vencimento</p>
+                    <p className="mt-1 text-sm font-medium">Dia {subscription.renews_on_day || "-"}</p>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Ativo desde {new Date(subscription.starts_on).toLocaleDateString("pt-BR")}
+                </p>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">Nenhum plano contratado.</p>
+            )}
           </div>
         </TabsContent>
       </Tabs>

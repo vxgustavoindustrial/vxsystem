@@ -115,7 +115,14 @@ export function LoginPage() {
         }
         
         if (profile) {
-          // Se tiver client_id, buscamos os dados do cliente separadamente
+          if (!profile.is_active) {
+            toast.error('Sua conta está inativa. Entre em contato com o administrador.');
+            await supabase.auth.signOut();
+            useAuthStore.getState().clear();
+            setLoading(false);
+            return;
+          }
+
           if (profile.client_id) {
             const { data: clientData } = await supabase
               .from('clients')
