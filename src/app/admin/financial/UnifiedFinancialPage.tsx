@@ -1,4 +1,4 @@
-import { CreditCard } from "lucide-react";
+
 import { AdminFinancialPage } from "./page";
 
 export function UnifiedFinancialPage() {
