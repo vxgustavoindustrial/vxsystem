@@ -23,6 +23,10 @@ const AdminTeamPage = lazy(() => import('./app/admin/team/page').then((mod) => (
 const AdminSupportPage = lazy(() => import('./app/admin/support/page'));
 const AdminTicketDetailPage = lazy(() => import('./app/admin/support/[ticketId]/page'));
 const UnifiedFinancialPage = lazy(() => import('./app/admin/financial/UnifiedFinancialPage').then((mod) => ({ default: mod.UnifiedFinancialPage })));
+const AdminUploadsPage = lazy(() => import('./modules/vx-admin/components/AdminOperationsPages').then((mod) => ({ default: mod.AdminUploadsPage })));
+const AdminProcessingPage = lazy(() => import('./modules/vx-admin/components/AdminOperationsPages').then((mod) => ({ default: mod.AdminProcessingPage })));
+const AdminLibraryPage = lazy(() => import('./modules/vx-admin/components/AdminOperationsPages').then((mod) => ({ default: mod.AdminLibraryPage })));
+const AdminInstallationPage = lazy(() => import('./modules/vx-admin/components/AdminOperationsPages').then((mod) => ({ default: mod.AdminInstallationPage })));
 
 const ClientDashboard = lazy(() => import('./app/client/page').then((mod) => ({ default: mod.ClientDashboard })));
 const ClientOnboardingPage = lazy(() => import('./app/client/onboarding/page').then((mod) => ({ default: mod.ClientOnboardingPage })));
@@ -203,6 +207,10 @@ export default function App() {
               <Route path="/admin/clients" element={<AdminClientsPage />} />
               <Route path="/admin/clients/:id" element={<AdminClientDetailPage />} />
               <Route path="/admin/team" element={<AdminTeamPage />} />
+              <Route path="/admin/uploads" element={<AdminUploadsPage />} />
+              <Route path="/admin/processing" element={<AdminProcessingPage />} />
+              <Route path="/admin/library" element={<AdminLibraryPage />} />
+              <Route path="/admin/installation" element={<AdminInstallationPage />} />
             </Route>
           </Route>
           
